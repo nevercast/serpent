@@ -32,8 +32,9 @@ Three suites under `test/`:
   but the neck is exempt (a full-lock turn alone can't kill), and every segment
   of another serpent — tail tip included — is lethal. Glancing head overlaps are
   checked across angle and size-ratio matrices to avoid unfair mutual kills.
-- **longevity** — runs 5 simulated minutes of the real update loop and asserts
-  bots thrive instead of spiralling into their own tails. Prints a stats line.
+- **longevity** — runs repeated seeded 10-minute bot-only simulations through
+  the real update loop, reports death-cause metrics, and asserts self-collision
+  stays below the regression threshold.
 - **smoke** — boots the browser entry under DOM stubs and drives every input
   path (mouse, simultaneous joystick + boost, keyboard, resize, slow frames).
 

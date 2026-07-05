@@ -8,22 +8,64 @@ import { TAU, rand, clamp, angDiff } from './math.js';
 import { WORLD, BASE_SPEED, CELL, CELLS } from './constants.js';
 import { cells } from './food.js';
 
-// Does heading `ang` ray into our own body within `dist`? Samples 3 points.
+function turnRateForRadius(radius) {
+  return 4.4 - Math.min(2.4, (radius - 7) * 0.16);
+}
+
+// Does steering toward `ang` hit our own body within `dist`? This predicts the
+// same turn-limited path the snake can actually take, rather than a straight ray.
 export function selfBlocked(b, ang, dist) {
-  const skip = Math.ceil(70 / b.spacing);          // exempt the neck
+  const collisionR = b.headR * 0.8 + b.radius * 0.8;
+  const skip = Math.ceil((collisionR * 2.6) / b.spacing) + 1;
   const rr = b.headR + b.radius + 10, rr2 = rr * rr;
-  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const stepDist = Math.max(18, b.radius * 0.75);
+  const steps = Math.ceil(dist / stepDist);
+  const maxTurnPerStep = turnRateForRadius(b.radius) * (stepDist / BASE_SPEED);
+  let x = b.x, y = b.y, dir = b.dir;
   const segs = b.segs;
-  for (let k = 1; k <= 3; k++) {
-    const d = dist * k / 3;
-    const qx = b.x + ca * d, qy = b.y + sa * d;
+  for (let k = 1; k <= steps; k++) {
+    const turn = clamp(angDiff(ang, dir), -maxTurnPerStep, maxTurnPerStep);
+    dir += turn;
+    x += Math.cos(dir) * stepDist;
+    y += Math.sin(dir) * stepDist;
     for (let i = skip; i < b.segCount; i += 2) {
       const g = segs[i];
-      const dx = g.x - qx, dy = g.y - qy;
+      const dx = g.x - x, dy = g.y - y;
       if (dx * dx + dy * dy < rr2) return true;
     }
   }
   return false;
+}
+
+function wallBlocked(b, ang, dist) {
+  const stepDist = Math.max(18, b.radius * 0.75);
+  const steps = Math.ceil(dist / stepDist);
+  const maxTurnPerStep = turnRateForRadius(b.radius) * (stepDist / BASE_SPEED);
+  let x = b.x, y = b.y, dir = b.dir;
+  const margin = b.headR + 18;
+  for (let k = 1; k <= steps; k++) {
+    const turn = clamp(angDiff(ang, dir), -maxTurnPerStep, maxTurnPerStep);
+    dir += turn;
+    x += Math.cos(dir) * stepDist;
+    y += Math.sin(dir) * stepDist;
+    if (x < margin || y < margin || x > WORLD - margin || y > WORLD - margin) return true;
+  }
+  return false;
+}
+
+function findSafeHeading(b, preferred, look, fallback) {
+  let best = null, bestScore = -Infinity;
+  const choices = [0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, 1.8, -1.8, 2.35, -2.35, Math.PI, -Math.PI];
+  for (const offset of choices) {
+    const cand = preferred + offset;
+    if (selfBlocked(b, cand, look) || wallBlocked(b, cand, look)) continue;
+    const align = Math.cos(angDiff(cand, preferred));
+    const escape = Math.cos(angDiff(cand, fallback));
+    const straight = Math.cos(angDiff(cand, b.dir));
+    const score = align * 1.5 + escape + straight * 0.35;
+    if (score > bestScore) { best = cand; bestScore = score; }
+  }
+  return best ?? fallback;
 }
 
 export function botThink(b, snakes) {
@@ -35,18 +77,16 @@ export function botThink(b, snakes) {
   // open side — away from our own centre of mass — until a clear heading is found.
   if (b.segCount > 24) {
     const look = 90 + b.radius * 3;
-    if (selfBlocked(b, b.targetAngle, look) || selfBlocked(b, b.dir, 55 + b.radius * 2)) {
+    if (
+      selfBlocked(b, b.targetAngle, look) ||
+      selfBlocked(b, b.dir, 55 + b.radius * 2) ||
+      wallBlocked(b, b.targetAngle, look)
+    ) {
       const segs = b.segs;
       let sx = 0, sy = 0;
       for (let i = 0; i < b.segCount; i++) { sx += segs[i].x; sy += segs[i].y; }
       const comA = Math.atan2(b.y - sy / b.segCount, b.x - sx / b.segCount);
-      const sgn = Math.sign(angDiff(comA, b.targetAngle)) || 1;
-      let found = false;
-      for (let k = 1; k <= 5; k++) {
-        const cand = b.targetAngle + sgn * k * 0.55;
-        if (!selfBlocked(b, cand, look)) { b.targetAngle = cand; found = true; break; }
-      }
-      if (!found) b.targetAngle = comA;   // last resort: straight away from the coil
+      b.targetAngle = findSafeHeading(b, b.targetAngle, look, comA);
       b.boost = false;
     }
   }
@@ -90,7 +130,7 @@ function pickBotTarget(b, snakes) {
   // Seek nearest REACHABLE food. A pellet inside the min turning circle can't be
   // caught by greedy pursuit — the bot orbits it forever and eventually rings its
   // own tail. Skip those; another pellet always exists.
-  const trate = 4.4 - Math.min(2.4, (b.radius - 7) * 0.16);
+  const trate = turnRateForRadius(b.radius);
   const Rmin = (BASE_SPEED / trate) * 1.15;
   const bca = Math.cos(b.dir), bsa = Math.sin(b.dir);
   const lcx = b.x - bsa * Rmin, lcy = b.y + bca * Rmin;   // left turn-circle centre

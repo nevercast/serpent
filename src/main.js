@@ -1,7 +1,7 @@
 // Entry point. Wires the DOM, owns the menu/play/dead state machine and the
 // high score, and runs the main loop: fixed-timestep simulation (deterministic
 // across 60/120/144Hz) with a render every animation frame.
-import { STEP, LS_KEY } from './constants.js';
+import { STEP, LS_KEY, MIN_BOOST_MASS } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
@@ -23,6 +23,10 @@ let best = 0;
 try { best = +localStorage.getItem(LS_KEY) || 0; } catch (e) {}
 bestEl.textContent = best;
 function saveBest() { try { localStorage.setItem(LS_KEY, String(best)); } catch (e) {} }
+// Request persistent storage so the browser won't evict our high score under
+// storage pressure. localStorage remains the storage medium; persistence just
+// upgrades the quota bucket from "best effort" to "persistent".
+try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
 
 function start() {
   const p = world.spawnPlayer();
@@ -73,6 +77,9 @@ function loop(t) {
   if (G.mode === 'play' && p && p.alive) {
     p.targetAngle = input.getAim();
     p.boost = input.boostHeld();
+    input.setTouchBoostAvailable(p.mass > MIN_BOOST_MASS);
+  } else {
+    input.setTouchBoostAvailable(false);
   }
 
   acc += dt;
@@ -94,7 +101,7 @@ function loop(t) {
       if (sc !== lastScore) {
         lastScore = sc;
         scoreEl.textContent = sc;
-        if (sc > best) { best = sc; bestEl.textContent = best; }
+        if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
       if (world.popPlayerHits() > 0) triggerBumped();
     }

@@ -4,6 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installStubs } from './helpers/dom-stub.js';
+import { MIN_BOOST_MASS } from '../src/constants.js';
+import * as world from '../src/world.js';
 
 test('browser entry boots and handles all input paths without throwing', async () => {
   const h = installStubs();
@@ -12,6 +14,14 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.advance(60, 16.7);                  // idle menu frames
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(60, 16.7);
+  assert.equal(h.els.boostBtn.classList.contains('disabled'), true, 'boost button starts unavailable');
+  h.fireEl('boostBtn', 'pointerdown', { pointerId: 30, preventDefault() {} });
+  assert.equal(h.els.boostBtn.classList.contains('on'), false, 'unavailable boost button ignores touch');
+
+  const p = world.getPlayer();
+  p.mass = MIN_BOOST_MASS + 1;
+  h.advance(1, 16.7);
+  assert.equal(h.els.boostBtn.classList.contains('disabled'), false, 'boost button enables above min mass');
 
   // desktop: mouse steer + hold-to-boost
   h.fireWin('pointermove', { pointerType: 'mouse', clientX: 900, clientY: 200 });
@@ -20,8 +30,11 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireWin('pointerup', { pointerType: 'mouse' });
 
   // touch: joystick + boost button held simultaneously on separate pointers
+  p.mass = MIN_BOOST_MASS + 1;
+  h.advance(1, 16.7);
   h.fireEl('stick', 'pointerdown', { pointerId: 31, clientX: 1192, clientY: 628, preventDefault() {} });
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 32, preventDefault() {} });
+  assert.equal(h.els.boostBtn.classList.contains('on'), true, 'available boost button presses');
   h.fireEl('stick', 'pointermove', { pointerId: 31, clientX: 1160, clientY: 560 });
   h.advance(60, 16.7);
   // stray extra touches must be ignored, then release out of order

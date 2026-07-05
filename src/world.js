@@ -11,9 +11,12 @@ export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
 let player = null;
 let tGame = 0;
+let playerHitCount = 0;      // bots that died crashing into the player's body
 let ambientFoodBudget = 0;
 
 export function getPlayer() { return player; }
+// Returns the number of bots that crashed into the player since the last call.
+export function popPlayerHits() { const n = playerHitCount; playerHitCount = 0; return n; }
 
 function safePos() {
   for (let t = 0; t < 24; t++) {
@@ -84,7 +87,7 @@ export function collide() {
       for (let i = 0; i < n; i++) {
         const g = segs[i];
         const dx = g.x - s.x, dy = g.y - s.y;
-        if (dx * dx + dy * dy < rr2) { s.pendingDead = true; s.deathCause = 'other'; break; }
+        if (dx * dx + dy * dy < rr2) { s.pendingDead = true; s.deathCause = 'other'; if (o === player && s.bot) playerHitCount++; break; }
       }
       if (s.pendingDead) break;
     }
@@ -170,6 +173,7 @@ export function resetWorld() {
   botTimers.length = 0;
   player = null;
   tGame = 0;
+  playerHitCount = 0;
   ambientFoodBudget = 0;
   resetFood();
 }

@@ -6,6 +6,7 @@ import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
 import { render, snapCamera } from './render.js';
+import { popPlayerHits } from './world.js';
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
@@ -13,6 +14,7 @@ const scoreEl = el('score'), bestEl = el('best');
 const finalEl = el('finalScore'), bestDeadEl = el('bestDead');
 const menuEl = el('menu'), deadEl = el('dead');
 const playBtn = el('playBtn'), respawnBtn = el('respawnBtn');
+const hitFlashEl = el('hitFlash');
 
 const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead'
 let lastScore = -1;
@@ -35,9 +37,17 @@ function start() {
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
 }
+function triggerBumped() {
+  hitFlashEl.classList.remove('flash');
+  void hitFlashEl.offsetWidth;          // force reflow to restart the animation
+  hitFlashEl.classList.add('flash');
+  if (navigator.vibrate) navigator.vibrate(80);
+}
 function gameOver() {
   G.mode = 'dead';
-  const sc = Math.floor(world.getPlayer().mass);
+  if (navigator.vibrate) navigator.vibrate(300);
+  const p = world.getPlayer();
+  const sc = Math.floor(p.mass);
   if (sc > best) best = sc;
   saveBest();
   bestEl.textContent = best;
@@ -93,6 +103,7 @@ function loop(t) {
         scoreEl.textContent = sc;
         if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
+      if (world.popPlayerHits() > 0) triggerBumped();
     }
   }
 

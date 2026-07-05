@@ -115,9 +115,19 @@ export class Snake {
 
   die() {
     this.alive = false;
+    const bodyR = this.radius;
+    // Death-food visual size scales with the dead snake's body radius: approximately
+    // half the body radius, clamped to [ambient-food-min (3), MAX_RADIUS/2].
+    // The quantity v is derived from the target radius via the inverse density
+    // formula (r = 3·√v ↔ v = (r/3)²) so that v and r stay mutually consistent
+    // instead of using a raw radius value directly.
+    const minFoodR = 3;                      // ambient food minimum radius
+    const maxFoodR = MAX_RADIUS / 2;         // half max serpent body radius
+    const foodR = clamp(bodyR / 2, minFoodR, maxFoodR);
+    const foodV = (foodR / minFoodR) ** 2;   // inverse of r = minFoodR·√v
     for (let i = 0; i < this.segCount; i += 2) {
       const g = this.segs[i];
-      spawnFood(g.x + rand(-7, 7), g.y + rand(-7, 7), 2, rand(4.5, 6), this.ci);
+      spawnFood(g.x + rand(-7, 7), g.y + rand(-7, 7), foodV, rand(foodR * 0.85, foodR * 1.1), this.ci);
     }
   }
 }

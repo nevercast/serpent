@@ -5,7 +5,7 @@ import { WORLD, BOT_COUNT, TARGET_FOOD, CELL, CELLS, START_MASS, NEON } from './
 import { rand } from './math.js';
 import { foods, cells, spawnRandomFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
-import { botThink } from './ai.js';
+import { botThink, avoidTraffic, guardSelfCollision } from './ai.js';
 
 export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
@@ -143,8 +143,13 @@ export function update(dt) {
   }
   for (const s of snakes) {
     if (s.bot) {
+      // Traffic avoidance and self-collision guarding are reflexes, checked
+      // every tick; the slower think cadence (food/wander) only runs when
+      // no immediate threat needs a response.
+      const evading = avoidTraffic(s, snakes);
       s.think -= dt;
-      if (s.think <= 0) botThink(s, snakes);
+      if (!evading && s.think <= 0) botThink(s, snakes);
+      guardSelfCollision(s);
     }
     s.update(dt);
   }

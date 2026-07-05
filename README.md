@@ -30,7 +30,8 @@ Three suites under `test/`:
 
 - **collision** — invariants that must never regress: self-collision is lethal
   but the neck is exempt (a full-lock turn alone can't kill), and every segment
-  of another serpent — tail tip included — is lethal.
+  of another serpent — tail tip included — is lethal. Glancing head overlaps are
+  checked across angle and size-ratio matrices to avoid unfair mutual kills.
 - **longevity** — runs 5 simulated minutes of the real update loop and asserts
   bots thrive instead of spiralling into their own tails. Prints a stats line.
 - **smoke** — boots the browser entry under DOM stubs and drives every input
@@ -38,6 +39,13 @@ Three suites under `test/`:
 
 Tests import the simulation modules directly and run headless — no browser, no
 Parcel. The simulation core is deliberately DOM-free so this stays possible.
+
+### Glancing collision matrix examples
+
+The grid below shows representative collide vs no-collide glancing setups over a
+range of incident angles and trailing/leading mass ratios:
+
+![Glancing collision grid](./test/glancing-collision-grid.svg)
 
 ## Layout
 

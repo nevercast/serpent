@@ -84,7 +84,14 @@ export function collide() {
       if (s.x < o.minX - hr || s.x > o.maxX + hr || s.y < o.minY - hr || s.y > o.maxY + hr) continue;
       const rr = hr * 0.85 + o.radius * 0.9, rr2 = rr * rr;
       const segs = o.segs, n = o.segCount;
-      for (let i = 0; i < n; i++) {
+      // Glancing passes can overlap a trailing snake's head sample into the
+      // leading snake's head/neck samples and feel like an unfair "neck hit".
+      // So when the other head is not ahead of us, ignore only its immediate
+      // head/neck samples while keeping the rest of the body lethal.
+      const ox = o.x - s.x, oy = o.y - s.y;
+      const oAhead = Math.cos(s.dir) * ox + Math.sin(s.dir) * oy > 0;
+      const skip = oAhead ? 0 : Math.max(1, Math.ceil(o.headR / o.spacing));
+      for (let i = skip; i < n; i++) {
         const g = segs[i];
         const dx = g.x - s.x, dy = g.y - s.y;
         if (dx * dx + dy * dy < rr2) { s.pendingDead = true; s.deathCause = 'other'; if (o === player && s.bot) playerHitCount++; break; }

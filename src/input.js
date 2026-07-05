@@ -33,7 +33,7 @@ function resetBoost() {
   btnBoost = false;
   if (boostBtn) boostBtn.classList.remove('on');
 }
-function resetTouchInput() {
+export function resetTouchInput() {
   resetStick();
   resetBoost();
 }

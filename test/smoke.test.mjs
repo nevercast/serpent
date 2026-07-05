@@ -72,9 +72,13 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireEl('respawnBtn', 'click', {});   // ensure play mode
   h.advance(5, 16.7);
   assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible during play');
+  h.fireEl('stick', 'pointerdown', { pointerId: 36, clientX: 1192, clientY: 628, preventDefault() {} });
+  h.fireEl('stick', 'pointermove', { pointerId: 36, clientX: 1160, clientY: 560 });
+  assert.notEqual(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'joystick active before pause');
   h.fireEl('pauseBtn', 'click', {});
   assert.equal(h.els.pause.classList.contains('hidden'), false, 'pause overlay visible when paused');
   assert.equal(h.els.pauseBtn.classList.contains('hidden'), true, 'pause button hidden while paused');
+  assert.equal(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'pause releases active joystick input');
   assert.ok(h.win.localStorage.getItem('neon-serpent-pause') !== null, 'pause state saved to localStorage');
 
   h.fireEl('resumeBtn', 'click', {});

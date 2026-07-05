@@ -1,7 +1,10 @@
 // The simulation core: owns the snake roster and advances the world one fixed
 // step at a time. Deliberately DOM-free so the test suite can drive it headless.
 // Input application, HUD and game-over UI live in the browser layer (main.js).
-import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS, START_MASS, NEON, GHOST_DURATION } from './constants.js';
+import {
+  WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS,
+  START_MASS, NEON, GHOST_DURATION
+} from './constants.js';
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';

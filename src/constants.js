@@ -35,7 +35,7 @@ export const CELL = 120;              // spatial-hash cell size, px
 export const CELLS = Math.ceil(WORLD / CELL);
 export const STEP = 1 / 60;           // fixed simulation timestep, seconds
 
-export const NEON = ['#00f0ff','#ff2df7','#7dff00','#ffe600','#ff7a00','#b46bff','#00ff9d','#ff3355'];
+export const NEON = ['#7dff00','#ff2df7','#00f0ff','#ffe600','#ff7a00','#b46bff','#00ff9d','#ff3355'];
 export const LS_KEY = 'neon-serpent-best';
 export const LS_BEST_KILLS_KEY = 'neon-serpent-best-kills';
 export const LS_PAUSE_KEY = 'neon-serpent-pause';

@@ -13,6 +13,8 @@ export const START_MASS = 10, MIN_BOOST_MASS = 14;
 export const BOOST_DRAIN = 9;         // mass/sec burned while boosting
 export const MAX_SEGS = 520;          // max body segments (length cap)
 
+export const GHOST_DURATION = 3;          // seconds of collision immunity after spawning
+
 export const BOT_COUNT = 20;
 export const TARGET_FOOD = 1450, MAX_FOOD = 3000;
 export const AMBIENT_FOOD_RESPAWNS_PER_SEC = 120;

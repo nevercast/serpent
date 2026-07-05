@@ -5,7 +5,7 @@ import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CEL
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
-import { botThink } from './ai.js';
+import { botThink, botAvoidHazards } from './ai.js';
 
 export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
@@ -169,6 +169,7 @@ export function update(dt) {
     if (s.bot) {
       s.think -= dt;
       if (s.think <= 0) botThink(s, snakes);
+      else botAvoidHazards(s, snakes);
     }
     s.update(dt);
   }

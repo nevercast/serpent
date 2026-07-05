@@ -1,9 +1,6 @@
 // Bot brain. pickBotTarget chooses a desired heading (dodge / food / wander);
-// botThink then runs a safety filter that never lets that heading cross the
-// bot's own body. Layered defenses against the death-spiral failure mode:
-//   1. reachability filter — ignore food inside the min turning circle
-//   2. anti-spiral governor — unwind after too much one-way turning
-//   3. heading validation — reject any target that rays into own body
+// botThink then runs a safety filter that rejects headings which predictably
+// run into the bot's own body, walls, or opponent bodies.
 import { TAU, rand, clamp, angDiff } from './math.js';
 import { WORLD, BASE_SPEED, CELL, CELLS } from './constants.js';
 import { cells } from './food.js';
@@ -12,25 +9,33 @@ function turnRateForRadius(radius) {
   return 4.4 - Math.min(2.4, (radius - 7) * 0.16);
 }
 
+function projectedPath(b, ang, dist) {
+  const stepDist = Math.max(18, b.radius * 0.75);
+  const steps = Math.ceil(dist / stepDist);
+  const maxTurnPerStep = turnRateForRadius(b.radius) * (stepDist / BASE_SPEED);
+  let x = b.x, y = b.y, dir = b.dir;
+  const path = [];
+  for (let k = 1; k <= steps; k++) {
+    const turn = clamp(angDiff(ang, dir), -maxTurnPerStep, maxTurnPerStep);
+    dir += turn;
+    x += Math.cos(dir) * stepDist;
+    y += Math.sin(dir) * stepDist;
+    path.push({ x, y });
+  }
+  return path;
+}
+
 // Does steering toward `ang` hit our own body within `dist`? This predicts the
 // same turn-limited path the snake can actually take, rather than a straight ray.
 export function selfBlocked(b, ang, dist) {
   const collisionR = b.headR * 0.8 + b.radius * 0.8;
   const skip = Math.ceil((collisionR * 2.6) / b.spacing) + 1;
   const rr = b.headR + b.radius + 10, rr2 = rr * rr;
-  const stepDist = Math.max(18, b.radius * 0.75);
-  const steps = Math.ceil(dist / stepDist);
-  const maxTurnPerStep = turnRateForRadius(b.radius) * (stepDist / BASE_SPEED);
-  let x = b.x, y = b.y, dir = b.dir;
   const segs = b.segs;
-  for (let k = 1; k <= steps; k++) {
-    const turn = clamp(angDiff(ang, dir), -maxTurnPerStep, maxTurnPerStep);
-    dir += turn;
-    x += Math.cos(dir) * stepDist;
-    y += Math.sin(dir) * stepDist;
-    for (let i = skip; i < b.segCount; i += 2) {
+  for (const p of projectedPath(b, ang, dist)) {
+    for (let i = skip; i < b.segCount; i++) {
       const g = segs[i];
-      const dx = g.x - x, dy = g.y - y;
+      const dx = g.x - p.x, dy = g.y - p.y;
       if (dx * dx + dy * dy < rr2) return true;
     }
   }
@@ -38,27 +43,65 @@ export function selfBlocked(b, ang, dist) {
 }
 
 function wallBlocked(b, ang, dist) {
-  const stepDist = Math.max(18, b.radius * 0.75);
-  const steps = Math.ceil(dist / stepDist);
-  const maxTurnPerStep = turnRateForRadius(b.radius) * (stepDist / BASE_SPEED);
-  let x = b.x, y = b.y, dir = b.dir;
   const margin = b.headR + 18;
-  for (let k = 1; k <= steps; k++) {
-    const turn = clamp(angDiff(ang, dir), -maxTurnPerStep, maxTurnPerStep);
-    dir += turn;
-    x += Math.cos(dir) * stepDist;
-    y += Math.sin(dir) * stepDist;
-    if (x < margin || y < margin || x > WORLD - margin || y > WORLD - margin) return true;
+  for (const p of projectedPath(b, ang, dist)) {
+    if (p.x < margin || p.y < margin || p.x > WORLD - margin || p.y > WORLD - margin) return true;
   }
   return false;
 }
 
-function findSafeHeading(b, preferred, look, fallback) {
+function opponentBlocked(b, snakes, ang, dist) {
+  const rrPad = b.headR + 22;
+  for (const p of projectedPath(b, ang, dist)) {
+    for (const o of snakes) {
+      if (o === b || !o.alive || o.ghostTimer > 0) continue;
+      if (p.x < o.minX - rrPad || p.x > o.maxX + rrPad || p.y < o.minY - rrPad || p.y > o.maxY + rrPad) continue;
+      const rr = b.headR * 0.85 + o.radius * 0.9 + 14, rr2 = rr * rr;
+      const segs = o.segs;
+      for (let i = 0; i < o.segCount; i += 2) {
+        const g = segs[i];
+        const dx = g.x - p.x, dy = g.y - p.y;
+        if (dx * dx + dy * dy < rr2) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function hazardBlocked(b, snakes, ang, dist) {
+  return selfBlocked(b, ang, dist) || wallBlocked(b, ang, dist) || opponentBlocked(b, snakes, ang, dist);
+}
+
+function nearbyOwnBodyAhead(b) {
+  if (b.segCount <= 36) return null;
+  const ca = Math.cos(b.dir), sa = Math.sin(b.dir);
+  const skip = Math.ceil((b.headR + b.radius) * 2.2 / b.spacing) + 1;
+  const maxD = 520 + b.radius * 4;
+  const maxD2 = maxD * maxD;
+  let closest = null, best = Infinity;
+  for (let i = skip; i < b.segCount; i += 2) {
+    const g = b.segs[i];
+    const dx = g.x - b.x, dy = g.y - b.y;
+    const forward = dx * ca + dy * sa;
+    if (forward < -b.radius * 2) continue;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > maxD2 || d2 >= best) continue;
+    best = d2;
+    closest = g;
+  }
+  return closest;
+}
+
+function findSafeHeading(b, snakes, preferred, look, fallback) {
   let best = null, bestScore = -Infinity;
-  const choices = [0, 0.45, -0.45, 0.9, -0.9, 1.35, -1.35, 1.8, -1.8, 2.35, -2.35, Math.PI, -Math.PI];
-  for (const offset of choices) {
-    const cand = preferred + offset;
-    if (selfBlocked(b, cand, look) || wallBlocked(b, cand, look)) continue;
+  const offsets = [0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2, 1.55, -1.55, 1.9, -1.9, 2.35, -2.35, Math.PI];
+  const candidates = [];
+  for (const offset of offsets) {
+    candidates.push(preferred + offset);
+    candidates.push(fallback + offset);
+  }
+  for (const cand of candidates) {
+    if (hazardBlocked(b, snakes, cand, look)) continue;
     const align = Math.cos(angDiff(cand, preferred));
     const escape = Math.cos(angDiff(cand, fallback));
     const straight = Math.cos(angDiff(cand, b.dir));
@@ -68,46 +111,49 @@ function findSafeHeading(b, preferred, look, fallback) {
   return best ?? fallback;
 }
 
+export function botAvoidHazards(b, snakes) {
+  if (b.segCount <= 24) return;
+  const look = 260 + b.radius * 5;
+  if (!hazardBlocked(b, snakes, b.targetAngle, look) && !hazardBlocked(b, snakes, b.dir, 160 + b.radius * 3)) return;
+
+  const segs = b.segs;
+  let sx = 0, sy = 0;
+  for (let i = 0; i < b.segCount; i++) { sx += segs[i].x; sy += segs[i].y; }
+  const comA = Math.atan2(b.y - sy / b.segCount, b.x - sx / b.segCount);
+  const centerA = Math.atan2(WORLD / 2 - b.y, WORLD / 2 - b.x);
+  const fallback = wallBlocked(b, comA, look) ? centerA : comA;
+  b.targetAngle = findSafeHeading(b, snakes, b.targetAngle, look, fallback);
+  b.boost = false;
+}
+
 export function botThink(b, snakes) {
   b.think = 0.12 + Math.random() * 0.1;
   pickBotTarget(b, snakes);
-
-  // Safety filter: never steer across our own body. Validate the chosen
-  // heading (and the near-term straight-ahead); if blocked, rotate toward the
-  // open side — away from our own centre of mass — until a clear heading is found.
-  if (b.segCount > 24) {
-    const look = 90 + b.radius * 3;
-    if (
-      selfBlocked(b, b.targetAngle, look) ||
-      selfBlocked(b, b.dir, 55 + b.radius * 2) ||
-      wallBlocked(b, b.targetAngle, look)
-    ) {
-      const segs = b.segs;
-      let sx = 0, sy = 0;
-      for (let i = 0; i < b.segCount; i++) { sx += segs[i].x; sy += segs[i].y; }
-      const comA = Math.atan2(b.y - sy / b.segCount, b.x - sx / b.segCount);
-      b.targetAngle = findSafeHeading(b, b.targetAngle, look, comA);
-      b.boost = false;
-    }
-  }
+  botAvoidHazards(b, snakes);
 }
 
 function pickBotTarget(b, snakes) {
   const M = 300;
-  // steer back toward the middle near walls
+  // Steer back toward the middle near walls.
   if (b.x < M || b.y < M || b.x > WORLD - M || b.y > WORLD - M) {
     b.targetAngle = Math.atan2(WORLD / 2 - b.y, WORLD / 2 - b.x) + rand(-0.3, 0.3);
     b.boost = false;
     return;
   }
-  // anti-spiral governor: a wound-up one-way turn is how a snake coils onto its
+  // Anti-spiral governor: a wound-up one-way turn is how a snake coils onto its
   // own tail. Unwind before chasing anything.
   if (Math.abs(b.turnAcc) > 3.8) {
     b.targetAngle = b.dir - Math.sign(b.turnAcc) * 0.5;
     b.boost = false;
     return;
   }
-  // probe ahead for other snakes; steer away if something's in the path
+  const ownAhead = nearbyOwnBodyAhead(b);
+  if (ownAhead) {
+    b.targetAngle = Math.atan2(b.y - ownAhead.y, b.x - ownAhead.x);
+    b.boost = false;
+    return;
+  }
+  // Probe ahead for other snakes; steer away if something's in the path.
   const opd = 90 + b.radius * 3;
   const px = b.x + Math.cos(b.dir) * opd, py = b.y + Math.sin(b.dir) * opd;
   for (const o of snakes) {
@@ -127,9 +173,8 @@ function pickBotTarget(b, snakes) {
   }
   b.boost = false;
 
-  // Seek nearest REACHABLE food. A pellet inside the min turning circle can't be
-  // caught by greedy pursuit — the bot orbits it forever and eventually rings its
-  // own tail. Skip those; another pellet always exists.
+  // Seek nearest reachable food. A pellet inside the min turning circle can
+  // make a greedy bot orbit until it crosses its own tail, so skip those.
   const trate = turnRateForRadius(b.radius);
   const Rmin = (BASE_SPEED / trate) * 1.15;
   const bca = Math.cos(b.dir), bsa = Math.sin(b.dir);

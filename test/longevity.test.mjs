@@ -54,7 +54,7 @@ function simulateBotOnly(seed, seconds) {
   }
 }
 
-test('bots report stable death-cause metrics over repeated 10 minute runs', { timeout: 60000 }, () => {
+test('bots report stable death-cause metrics over repeated 10 minute runs', { timeout: 120000 }, () => {
   const runs = [22, 2201, 2202].map(seed => simulateBotOnly(seed, 600));
   const aggregate = { deaths: 0, self: 0, wall: 0 };
 
@@ -70,7 +70,7 @@ test('bots report stable death-cause metrics over repeated 10 minute runs', { ti
 
     assert.ok(run.living.length > 0, `seed ${run.seed}: world should not go extinct`);
     assert.ok(run.bestEver > 150, `seed ${run.seed}: some bot should exceed mass 150 (got ${run.bestEver})`);
-    assert.ok(run.selfShare < 0.4, `seed ${run.seed}: self-collision share too high: ${run.selfShare.toFixed(2)}`);
+    assert.ok(run.selfShare < 0.1, `seed ${run.seed}: self-collision share too high: ${run.selfShare.toFixed(2)}`);
   }
 
   const aggregateSelfShare = aggregate.deaths ? aggregate.self / aggregate.deaths : 0;
@@ -79,5 +79,5 @@ test('bots report stable death-cause metrics over repeated 10 minute runs', { ti
     `self=${aggregate.self} wall=${aggregate.wall} selfShare=${aggregateSelfShare.toFixed(2)}`
   );
 
-  assert.ok(aggregateSelfShare < 0.32, `aggregate self-collision share too high: ${aggregateSelfShare.toFixed(2)}`);
+  assert.ok(aggregateSelfShare < 0.1, `aggregate self-collision share too high: ${aggregateSelfShare.toFixed(2)}`);
 });

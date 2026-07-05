@@ -11,7 +11,7 @@ test('camera zoom growth is gentler for large snakes', () => {
   assert.equal(cameraGrow(7), 1);
   assert.ok(cameraGrow(12) < oldGrow(12), 'mid-size snakes should keep more screen presence');
   assert.ok(cameraGrow(32) < oldGrow(32), 'large snakes should zoom out less than before');
-  assert.equal(cameraGrow(100), 1.7, 'zoom growth should cap to avoid over-zooming out');
+  assert.equal(cameraGrow(100), 2.0, 'zoom growth should cap at 2x');
 });
 
 test('snake movement speed is independent of size', () => {
@@ -45,4 +45,10 @@ test('snake movement speed is independent of size', () => {
   bigBoost.update(dt);
   assert.equal(smallBoost.x - 1000, BOOST_SPEED * dt);
   assert.equal(bigBoost.x - 1000, BOOST_SPEED * dt);
+});
+
+test('snake radius caps at 42', () => {
+  const giant = new Snake(1000, 1000, 0, false);
+  giant.mass = 5000;
+  assert.equal(giant.radius, 42);
 });

@@ -5,7 +5,8 @@ export const VIEW_W = 1600, VIEW_H = 900; // max world units ever visible (crops
 export const POINT_SPACING = 4;       // px between stored head-path points
 export const CAMERA_GROW_START_R = 7;
 export const CAMERA_GROW_RATE = 0.032;
-export const CAMERA_GROW_MAX = 0.7;
+export const CAMERA_GROW_MAX = 1.0;
+export const MAX_RADIUS = 42;
 
 export const BASE_SPEED = 150, BOOST_SPEED = 265;
 export const START_MASS = 10, MIN_BOOST_MASS = 14;

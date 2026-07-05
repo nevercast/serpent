@@ -84,7 +84,7 @@ function loop(t) {
       if (sc !== lastScore) {
         lastScore = sc;
         scoreEl.textContent = sc;
-        if (sc > best) { best = sc; bestEl.textContent = best; }
+        if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
     }
   }

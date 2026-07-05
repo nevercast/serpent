@@ -26,8 +26,11 @@ function makeEl(tag) {
     classList: {
       add: c => classes.add(c), remove: c => classes.delete(c),
       toggle: (c, force) => {
-        if (force === undefined) return classes.has(c) ? classes.delete(c) : classes.add(c);
-        if (force) classes.add(c);
+        if (force === undefined) {
+          if (classes.has(c)) classes.delete(c);
+          else classes.add(c);
+        }
+        else if (force) classes.add(c);
         else classes.delete(c);
         return classes.has(c);
       },

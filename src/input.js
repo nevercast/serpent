@@ -16,15 +16,27 @@ export function setTouchBoostAvailable(v) {
   if (!boostBtn) return;
   boostBtn.classList.toggle('disabled', !touchBoostAvailable);
   if (!touchBoostAvailable) {
-    boostId = null;
-    btnBoost = false;
-    boostBtn.classList.remove('on');
+    resetBoost();
   }
 }
 
 const STICK_R = 52;              // max joystick knob travel, px
 let stick, knob, boostBtn;
 let stickId = null, boostId = null;
+
+function resetStick() {
+  stickId = null;
+  if (knob) knob.style.transform = 'translate(0px, 0px)';      // knob recenters, heading persists
+}
+function resetBoost() {
+  boostId = null;
+  btnBoost = false;
+  if (boostBtn) boostBtn.classList.remove('on');
+}
+export function resetTouchInput() {
+  resetStick();
+  resetBoost();
+}
 
 function aimFromScreen(cx, cy) {
   const dx = cx - cssW / 2, dy = cy - cssH / 2;
@@ -70,13 +82,13 @@ export function initInput() {
   });
   stick.addEventListener('pointermove', e => { if (e.pointerId === stickId) stickMove(e); });
   const stickEnd = e => {
-    if (e.pointerId === stickId) {
-      stickId = null;
-      knob.style.transform = 'translate(0px, 0px)';      // knob recenters, heading persists
-    }
+    if (e.pointerId === stickId) resetStick();
   };
   stick.addEventListener('pointerup', stickEnd);
   stick.addEventListener('pointercancel', stickEnd);
+  stick.addEventListener('lostpointercapture', stickEnd);
+  window.addEventListener('pointerup', stickEnd);
+  window.addEventListener('pointercancel', stickEnd);
 
   // ---- touch boost button (left) ----
   boostBtn.addEventListener('pointerdown', e => {
@@ -90,10 +102,15 @@ export function initInput() {
     e.preventDefault();
   });
   const boostEnd = e => {
-    if (e.pointerId === boostId) { boostId = null; btnBoost = false; boostBtn.classList.remove('on'); }
+    if (e.pointerId === boostId) resetBoost();
   };
   boostBtn.addEventListener('pointerup', boostEnd);
   boostBtn.addEventListener('pointercancel', boostEnd);
+  boostBtn.addEventListener('lostpointercapture', boostEnd);
+  window.addEventListener('pointerup', boostEnd);
+  window.addEventListener('pointercancel', boostEnd);
+  window.addEventListener('blur', resetTouchInput);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) resetTouchInput(); });
 
   // ---- keyboard boost ----
   window.addEventListener('keydown', e => {

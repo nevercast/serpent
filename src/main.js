@@ -82,6 +82,7 @@ function gameOver() {
 function pause() {
   G.mode = 'paused';
   acc = 0;
+  input.resetTouchInput();
   try {
     localStorage.setItem(LS_PAUSE_KEY, JSON.stringify(world.exportState()));
   } catch (e) {}

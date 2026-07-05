@@ -29,6 +29,7 @@ export class Snake {
     this.turnAcc = 0;              // signed same-direction turn accumulator
     this.think = Math.random() * 0.2;
     this.wander = this.dir;
+    this.ghostTimer = 0;           // > 0: immune to collisions (respawn protection)
   }
 
   get radius() { return Math.min(MAX_RADIUS, 6 + Math.sqrt(this.mass) * 0.35 + this.mass * 0.022); }
@@ -36,6 +37,7 @@ export class Snake {
   targetSegCount() { return Math.min(MAX_SEGS, (10 + this.mass * 0.7) | 0); }
 
   update(dt) {
+    if (this.ghostTimer > 0) this.ghostTimer = Math.max(0, this.ghostTimer - dt);
     const r = this.radius;
     // bigger snakes turn slower
     const maxTurn = (4.4 - Math.min(2.4, (r - 7) * 0.16)) * dt;

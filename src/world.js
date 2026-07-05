@@ -1,7 +1,7 @@
 // The simulation core: owns the snake roster and advances the world one fixed
 // step at a time. Deliberately DOM-free so the test suite can drive it headless.
 // Input application, HUD and game-over UI live in the browser layer (main.js).
-import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS, START_MASS, NEON } from './constants.js';
+import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS, START_MASS, NEON, GHOST_DURATION } from './constants.js';
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
@@ -36,6 +36,7 @@ export function makeBot() {
   const p = safePos();
   const b = new Snake(p.x, p.y, 1 + ((Math.random() * (NEON.length - 1)) | 0), true);
   b.mass = START_MASS + Math.random() * 40;
+  b.ghostTimer = GHOST_DURATION;
   snakes.push(b);
   return b;
 }
@@ -47,6 +48,7 @@ export function spawnPlayer() {
   }
   const p = safePos();
   player = new Snake(p.x, p.y, 0, false);
+  player.ghostTimer = GHOST_DURATION;
   snakes.push(player);
   return player;
 }
@@ -57,6 +59,7 @@ export function spawnPlayer() {
 export function collide() {
   for (const s of snakes) {
     if (!s.alive) continue;
+    if (s.ghostTimer > 0) continue;   // spawning immunity: can't be killed while ghost
     const hr = s.headR;
 
     if (s.x < hr || s.y < hr || s.x > WORLD - hr || s.y > WORLD - hr) {
@@ -81,6 +84,7 @@ export function collide() {
     // others: i runs 0..segCount-1, so the tail tip is included
     for (const o of snakes) {
       if (o === s || !o.alive) continue;
+      if (o.ghostTimer > 0) continue;   // ghost bodies are intangible
       if (s.x < o.minX - hr || s.x > o.maxX + hr || s.y < o.minY - hr || s.y > o.maxY + hr) continue;
       const rr = hr * 0.85 + o.radius * 0.9, rr2 = rr * rr;
       const segs = o.segs, n = o.segCount;
@@ -197,6 +201,7 @@ export function exportState() {
       segCount: s.segCount, spacing: s.spacing,
       minX: s.minX, maxX: s.maxX, minY: s.minY, maxY: s.maxY,
       dropT: s.dropT, turnAcc: s.turnAcc, think: s.think, wander: s.wander,
+      ghostTimer: s.ghostTimer,
     })),
     playerIdx: player ? snakes.indexOf(player) : -1,
     foods: foods.map(f => ({ x: f.x, y: f.y, v: f.v, r: f.r, ci: f.ci, phase: f.phase })),
@@ -230,6 +235,7 @@ export function importState(state) {
     s.segCount = sd.segCount; s.spacing = sd.spacing;
     s.minX = sd.minX; s.maxX = sd.maxX; s.minY = sd.minY; s.maxY = sd.maxY;
     s.dropT = sd.dropT; s.turnAcc = sd.turnAcc; s.think = sd.think; s.wander = sd.wander;
+    s.ghostTimer = sd.ghostTimer ?? 0;
     snakes.push(s);
   }
 

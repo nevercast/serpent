@@ -118,6 +118,8 @@ export function render(time) {
     const r = s.radius;
     const d = r * 2.7;
     const segs = s.segs;
+    // Ghost state: pulse opacity so the player can see the protection window
+    if (s.ghostTimer > 0) ctx.globalAlpha = 0.35 + 0.3 * Math.sin(time * 10);
     for (let i = s.segCount - 1; i >= 1; i--) {
       const g = segs[i];
       ctx.drawImage(spr, g.x - d / 2, g.y - d / 2, d, d);
@@ -126,6 +128,7 @@ export function render(time) {
     const hd = hr * 2.7;
     ctx.drawImage(spr, s.x - hd / 2, s.y - hd / 2, hd, hd);
     drawEyes(ctx, s, hr);
+    if (s.ghostTimer > 0) ctx.globalAlpha = 1;
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -26,14 +26,17 @@ it falls back to a system sans-serif offline.
 npm test           # Node's built-in runner: node --test
 ```
 
-Three suites under `test/`:
+Key suites under `test/`:
 
+- **ai-performance** — compares configured bot navigation and avoidance modes,
+  printing compute cost per tick alongside death-cause metrics.
 - **collision** — invariants that must never regress: self-collision is lethal
   but the neck is exempt (a full-lock turn alone can't kill), and every segment
   of another serpent — tail tip included — is lethal. Glancing head overlaps are
   checked across angle and size-ratio matrices to avoid unfair mutual kills.
-- **longevity** — runs 5 simulated minutes of the real update loop and asserts
-  bots thrive instead of spiralling into their own tails. Prints a stats line.
+- **longevity** — runs repeated seeded 10-minute bot-only simulations through
+  the real update loop, reports death-cause metrics, and asserts self-collision
+  stays below the regression threshold.
 - **smoke** — boots the browser entry under DOM stubs and drives every input
   path (mouse, simultaneous joystick + boost, keyboard, resize, slow frames).
 
@@ -56,7 +59,7 @@ src/
   math.js             Pure helpers (angles, clamp, colour).
   food.js             Pellets + uniform-grid spatial hash.
   snake.js            Snake entity: movement, arc-length body, boost, death.
-  ai.js               Bot brain + self-collision safety filter.
+  ai.js               Bot brain + configurable hazard-avoidance modes.
   world.js            Simulation core: roster, spawn, collide, eat, update.  ← DOM-free
   view.js             Canvas, DPR sizing, adaptive resolution.               ← browser
   sprites.js          Pre-baked neon glow sprites.                           ← browser
@@ -64,6 +67,7 @@ src/
   render.js           Camera, culled world draw, minimap.                    ← browser
   main.js             Entry: state machine, fixed-timestep loop, HUD, score.  ← browser
 test/
+  ai-performance.test.mjs
   collision.test.mjs
   longevity.test.mjs
   smoke.test.mjs
@@ -73,6 +77,8 @@ test/
 The dividing line: `constants / math / food / snake / ai / world` are pure and
 headless-testable; `view / sprites / input / render / main` touch the DOM. To
 change feel, start in `constants.js`; to change rules, `world.js` and `ai.js`.
+Bot AI ablations are selected with `BOT_NAV_MODE` and `BOT_AVOIDANCE_MODE` in
+`constants.js`.
 
 ## Controls
 

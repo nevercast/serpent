@@ -1,7 +1,7 @@
 // Entry point. Wires the DOM, owns the menu/play/dead/paused state machine and the
 // high score, and runs the main loop: fixed-timestep simulation (deterministic
 // across 60/120/144Hz) with a render every animation frame.
-import { STEP, LS_KEY, LS_BEST_KILLS_KEY, LS_PAUSE_KEY, MIN_BOOST_MASS } from './constants.js';
+import { STEP, LS_KEY, LS_BEST_KILLS_KEY, LS_PAUSE_KEY, MIN_BOOST_MASS, START_MASS } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
@@ -37,6 +37,7 @@ function saveBestKills() { try { localStorage.setItem(LS_BEST_KILLS_KEY, String(
 try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
 
 function clearPauseState() { try { localStorage.removeItem(LS_PAUSE_KEY); } catch (e) {} }
+function scoreForMass(mass) { return Math.max(0, Math.floor(mass - START_MASS)); }
 
 function start() {
   clearPauseState();
@@ -64,7 +65,7 @@ function gameOver() {
   clearPauseState();
   if (navigator.vibrate) navigator.vibrate(300);
   const p = world.getPlayer();
-  const sc = Math.floor(p.mass);
+  const sc = scoreForMass(p.mass);
   if (sc > best) best = sc;
   saveBest();
   bestEl.textContent = best;
@@ -150,7 +151,7 @@ function loop(t) {
   if (G.mode === 'play') {
     const q = world.getPlayer();
     if (q && q.alive) {
-      const sc = Math.floor(q.mass);
+      const sc = scoreForMass(q.mass);
       if (sc !== lastScore) {
         lastScore = sc;
         scoreEl.textContent = sc;

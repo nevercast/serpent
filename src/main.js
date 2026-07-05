@@ -81,7 +81,6 @@ function loop(t) {
   if (steps === 5) acc = 0;          // don't spiral on very slow frames
 
   if (G.mode === 'play') {
-    if (world.popPlayerHits() > 0) triggerBumped();
     const q = world.getPlayer();
     if (q && !q.alive) gameOver();
   }
@@ -97,6 +96,7 @@ function loop(t) {
         scoreEl.textContent = sc;
         if (sc > best) { best = sc; bestEl.textContent = best; }
       }
+      if (world.popPlayerHits() > 0) triggerBumped();
     }
   }
 

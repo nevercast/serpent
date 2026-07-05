@@ -141,15 +141,18 @@ test('glancing head overlap resolves as neck hit, not mutual kill', () => {
 test('glancing behavior is stable across incident angles and size ratios', () => {
   const angles = [-25, -15, -10, 10, 15, 25];
   const ratios = [[60, 140], [90, 90], [140, 60]]; // [trailing, leading] mass
+  // yOffset = angleDeg * multiplier; with ±10..25° this maps to ±30..75 world units,
+  // which deterministically separates close neck clips from clear passes.
+  const GLANCING_OFFSET_MULTIPLIER = 3;
 
   for (const [trailMass, leadMass] of ratios) {
     for (const angle of angles) {
-      const near = runGlancingCase(angle, trailMass, leadMass, -angle * 3);
-      assert.ok(!near.trailAlive && near.leadAlive, `near pass should kill trailing only (angle=${angle}, ratio=${trailMass}:${leadMass})`);
-      assert.equal(near.trailCause, 'other');
+      const nearPassResult = runGlancingCase(angle, trailMass, leadMass, -angle * GLANCING_OFFSET_MULTIPLIER);
+      assert.ok(!nearPassResult.trailAlive && nearPassResult.leadAlive, `near pass should kill trailing only (angle=${angle}, ratio=${trailMass}:${leadMass})`);
+      assert.equal(nearPassResult.trailCause, 'other');
 
-      const far = runGlancingCase(angle, trailMass, leadMass, angle * 3);
-      assert.ok(far.trailAlive && far.leadAlive, `far pass should remain no-collide (angle=${angle}, ratio=${trailMass}:${leadMass})`);
+      const farPassResult = runGlancingCase(angle, trailMass, leadMass, angle * GLANCING_OFFSET_MULTIPLIER);
+      assert.ok(farPassResult.trailAlive && farPassResult.leadAlive, `far pass should remain no-collide (angle=${angle}, ratio=${trailMass}:${leadMass})`);
     }
   }
 });

@@ -4,7 +4,7 @@
 import { TAU, rand, clamp, angDiff } from './math.js';
 import {
   POINT_SPACING, BASE_SPEED, BOOST_SPEED,
-  START_MASS, MIN_BOOST_MASS, BOOST_DRAIN, MAX_SEGS
+  START_MASS, MIN_BOOST_MASS, BOOST_DRAIN, MAX_SEGS, MAX_RADIUS
 } from './constants.js';
 import { spawnFood } from './food.js';
 
@@ -31,7 +31,7 @@ export class Snake {
     this.wander = this.dir;
   }
 
-  get radius() { return Math.min(32, 6 + Math.sqrt(this.mass) * 0.35 + this.mass * 0.022); }
+  get radius() { return Math.min(MAX_RADIUS, 6 + Math.sqrt(this.mass) * 0.35 + this.mass * 0.022); }
   get headR() { return this.radius * 1.25; }   // head slightly bigger than body
   targetSegCount() { return Math.min(MAX_SEGS, (10 + this.mass * 0.7) | 0); }
 

@@ -1,7 +1,7 @@
 // All drawing. Camera follows the player (or a bot on menu/death screens) and
 // the zoom caps the visible world at VIEW_W x VIEW_H, cropping to fit — wide
 // desktop screens never reveal extra map. Culls by per-snake bounding box.
-import { WORLD, GRID, VIEW_W, VIEW_H } from './constants.js';
+import { WORLD, GRID, VIEW_W, VIEW_H, cameraGrow } from './constants.js';
 import { TAU } from './math.js';
 import * as view from './view.js';
 import { foods } from './food.js';
@@ -83,8 +83,8 @@ export function render(time) {
     camY += (tgt.y - camY) * 0.14;
     camR += (tgt.radius - camR) * 0.04;
   }
-  // zoom scales up to 2x as you grow, always cropping to the view cap
-  const grow = 1 + Math.min(1.0, Math.max(0, camR - 7) * 0.05);
+  // zoom grows more gently as you get larger so big snakes still feel responsive.
+  const grow = cameraGrow(camR);
   const targetScale = Math.max(pxW / (VIEW_W * grow), pxH / (VIEW_H * grow));
   camS += (targetScale - camS) * 0.08;
 

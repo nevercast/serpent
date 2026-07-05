@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installStubs } from './helpers/dom-stub.js';
+import { MIN_BOOST_MASS } from '../src/constants.js';
 import * as world from '../src/world.js';
 
 test('browser entry boots and handles all input paths without throwing', async () => {
@@ -18,7 +19,7 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.boostBtn.classList.contains('on'), false, 'unavailable boost button ignores touch');
 
   const p = world.getPlayer();
-  p.mass = 20;
+  p.mass = MIN_BOOST_MASS + 1;
   h.advance(1, 16.7);
   assert.equal(h.els.boostBtn.classList.contains('disabled'), false, 'boost button enables above min mass');
 
@@ -29,7 +30,7 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireWin('pointerup', { pointerType: 'mouse' });
 
   // touch: joystick + boost button held simultaneously on separate pointers
-  p.mass = 20;
+  p.mass = MIN_BOOST_MASS + 1;
   h.advance(1, 16.7);
   h.fireEl('stick', 'pointerdown', { pointerId: 31, clientX: 1192, clientY: 628, preventDefault() {} });
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 32, preventDefault() {} });

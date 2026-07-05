@@ -58,5 +58,31 @@ test('browser entry boots and handles all input paths without throwing', async (
   // long run to exercise the adaptive-resolution branch and many respawns
   h.advance(400, 8.3);
 
+  // pause / resume flow
+  h.fireEl('respawnBtn', 'click', {});   // ensure play mode
+  h.advance(5, 16.7);
+  assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible during play');
+  h.fireEl('pauseBtn', 'click', {});
+  assert.equal(h.els.pause.classList.contains('hidden'), false, 'pause overlay visible when paused');
+  assert.equal(h.els.pauseBtn.classList.contains('hidden'), true, 'pause button hidden while paused');
+  assert.ok(h.win.localStorage.getItem('neon-serpent-pause') !== null, 'pause state saved to localStorage');
+
+  h.fireEl('resumeBtn', 'click', {});
+  assert.equal(h.els.pause.classList.contains('hidden'), true, 'pause overlay hidden after resume');
+  assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible after resume');
+  assert.equal(h.win.localStorage.getItem('neon-serpent-pause'), null, 'pause state removed from localStorage on resume');
+
+  // Escape key toggles pause
+  h.fireWin('keydown', { code: 'Escape' });
+  assert.equal(h.els.pause.classList.contains('hidden'), false, 'Escape key pauses game');
+  h.fireWin('keydown', { code: 'Escape' });
+  assert.equal(h.els.pause.classList.contains('hidden'), true, 'second Escape resumes game');
+
+  // new game from pause overlay
+  h.fireWin('keydown', { code: 'Escape' });   // pause again
+  h.fireEl('newGameBtn', 'click', {});
+  assert.equal(h.els.pause.classList.contains('hidden'), true, 'pause overlay hidden after New Game');
+  assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible after New Game');
+
   assert.ok(true, 'reached the end with no exceptions');
 });

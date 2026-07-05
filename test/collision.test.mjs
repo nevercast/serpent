@@ -11,6 +11,17 @@ function step() {
   collide();
 }
 function add(s) { snakes.push(s); return s; }
+function runGlancingCase(angleDeg, trailMass, leadMass, yOffset) {
+  resetWorld();
+  const lead = add(new Snake(3000, 4000, 0, false));
+  lead.mass = leadMass; lead.dir = 0; lead.targetAngle = 0;
+  const angleRadians = angleDeg * Math.PI / 180;
+  const trail = add(new Snake(2840, 4000 + yOffset, 1, true));
+  trail.mass = trailMass; trail.dir = angleRadians; trail.targetAngle = angleRadians;
+  // 360 fixed steps gives enough time for either a glancing contact or a clean pass.
+  for (let i = 0; i < 360 && trail.alive && lead.alive; i++) step();
+  return { trailAlive: trail.alive, leadAlive: lead.alive, trailCause: trail.deathCause };
+}
 
 test('short snake survives sustained full-lock turning (neck exemption)', () => {
   resetWorld();
@@ -125,4 +136,20 @@ test('glancing head overlap resolves as neck hit, not mutual kill', () => {
   assert.ok(!a.alive, 'the trailing snake should die when clipping the other neck');
   assert.ok(b.alive, 'the leading snake should survive a glancing neck overlap');
   assert.equal(a.deathCause, 'other');
+});
+
+test('glancing behavior is stable across incident angles and size ratios', () => {
+  const angles = [-25, -15, -10, 10, 15, 25];
+  const ratios = [[60, 140], [90, 90], [140, 60]]; // [trailing, leading] mass
+
+  for (const [trailMass, leadMass] of ratios) {
+    for (const angle of angles) {
+      const near = runGlancingCase(angle, trailMass, leadMass, -angle * 3);
+      assert.ok(!near.trailAlive && near.leadAlive, `near pass should kill trailing only (angle=${angle}, ratio=${trailMass}:${leadMass})`);
+      assert.equal(near.trailCause, 'other');
+
+      const far = runGlancingCase(angle, trailMass, leadMass, angle * 3);
+      assert.ok(far.trailAlive && far.leadAlive, `far pass should remain no-collide (angle=${angle}, ratio=${trailMass}:${leadMass})`);
+    }
+  }
 });

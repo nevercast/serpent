@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installStubs } from './helpers/dom-stub.js';
-import { MIN_BOOST_MASS } from '../src/constants.js';
+import { MIN_BOOST_MASS, START_MASS } from '../src/constants.js';
 import * as world from '../src/world.js';
 
 test('browser entry boots and handles all input paths without throwing', async () => {
@@ -14,11 +14,15 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.advance(60, 16.7);                  // idle menu frames
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(60, 16.7);
+  assert.equal(h.els.score.textContent, '0', 'score starts at zero for the initial mass');
   assert.equal(h.els.boostBtn.classList.contains('disabled'), true, 'boost button starts unavailable');
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 30, preventDefault() {} });
   assert.equal(h.els.boostBtn.classList.contains('on'), false, 'unavailable boost button ignores touch');
 
   const p = world.getPlayer();
+  p.mass = START_MASS + 6.9;
+  h.advance(1, 16.7);
+  assert.equal(h.els.score.textContent, '6', 'score counts only mass gained above the starting mass');
   p.mass = MIN_BOOST_MASS + 1;
   h.advance(1, 16.7);
   assert.equal(h.els.boostBtn.classList.contains('disabled'), false, 'boost button enables above min mass');

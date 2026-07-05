@@ -18,13 +18,19 @@ function ctxStub() {
 function makeEl(tag) {
   const listeners = {};
   const classes = new Set();
+  let text = '';
   return {
     tag, width: 0, height: 0, listeners,
     addEventListener(n, f) { (listeners[n] = listeners[n] || []).push(f); },
     removeEventListener: noop,
     classList: {
       add: c => classes.add(c), remove: c => classes.delete(c),
-      toggle: c => (classes.has(c) ? classes.delete(c) : classes.add(c)),
+      toggle: (c, force) => {
+        if (force === undefined) return classes.has(c) ? classes.delete(c) : classes.add(c);
+        if (force) classes.add(c);
+        else classes.delete(c);
+        return classes.has(c);
+      },
       contains: c => classes.has(c),
     },
     contains: () => false,
@@ -33,7 +39,7 @@ function makeEl(tag) {
     setPointerCapture: noop, releasePointerCapture: noop,
     getBoundingClientRect: () => ({ left: 1122, top: 558, width: 140, height: 140 }),
     style: {},
-    set textContent(_v) {}, get textContent() { return ''; },
+    set textContent(v) { text = String(v); }, get textContent() { return text; },
   };
 }
 

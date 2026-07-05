@@ -20,8 +20,10 @@ test('snake movement speed is independent of size', () => {
   const big = new Snake(1000, 1000, 1, false);
   small.mass = 10;
   big.mass = 800;
-  small.dir = 0; small.targetAngle = 0;
-  big.dir = 0; big.targetAngle = 0;
+  small.dir = 0;
+  small.targetAngle = 0;
+  big.dir = 0;
+  big.targetAngle = 0;
 
   small.update(dt);
   big.update(dt);
@@ -34,8 +36,10 @@ test('snake movement speed is independent of size', () => {
   bigBoost.mass = 800;
   smallBoost.boost = true;
   bigBoost.boost = true;
-  smallBoost.dir = 0; smallBoost.targetAngle = 0;
-  bigBoost.dir = 0; bigBoost.targetAngle = 0;
+  smallBoost.dir = 0;
+  smallBoost.targetAngle = 0;
+  bigBoost.dir = 0;
+  bigBoost.targetAngle = 0;
 
   smallBoost.update(dt);
   bigBoost.update(dt);

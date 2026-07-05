@@ -21,6 +21,10 @@ let best = 0;
 try { best = +localStorage.getItem(LS_KEY) || 0; } catch (e) {}
 bestEl.textContent = best;
 function saveBest() { try { localStorage.setItem(LS_KEY, String(best)); } catch (e) {} }
+// Request persistent storage so the browser won't evict our high score under
+// storage pressure. localStorage remains the storage medium; persistence just
+// upgrades the quota bucket from "best effort" to "persistent".
+try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
 
 function start() {
   const p = world.spawnPlayer();
@@ -84,7 +88,7 @@ function loop(t) {
       if (sc !== lastScore) {
         lastScore = sc;
         scoreEl.textContent = sc;
-        if (sc > best) { best = sc; bestEl.textContent = best; }
+        if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
     }
   }

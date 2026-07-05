@@ -11,6 +11,7 @@ export const MAX_SEGS = 520;          // max body segments (length cap)
 
 export const BOT_COUNT = 20;
 export const TARGET_FOOD = 1450, MAX_FOOD = 3000;
+export const AMBIENT_FOOD_RESPAWNS_PER_SEC = 120;
 
 export const CELL = 120;              // spatial-hash cell size, px
 export const CELLS = Math.ceil(WORLD / CELL);

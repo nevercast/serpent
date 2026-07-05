@@ -3,7 +3,7 @@
 // Input application, HUD and game-over UI live in the browser layer (main.js).
 import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS, START_MASS, NEON } from './constants.js';
 import { rand } from './math.js';
-import { foods, cells, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
+import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
 import { botThink } from './ai.js';
 
@@ -183,4 +183,56 @@ export function resetWorld() {
   playerHitCount = 0;
   ambientFoodBudget = 0;
   resetFood();
+}
+
+// Serialize the complete world state to a plain JSON-safe object.
+export function exportState() {
+  return {
+    snakes: snakes.map(s => ({
+      x: s.x, y: s.y, dir: s.dir, targetAngle: s.targetAngle,
+      ci: s.ci, bot: s.bot, mass: s.mass, boost: s.boost,
+      alive: s.alive, pendingDead: s.pendingDead, deathCause: s.deathCause,
+      pts: s.pts.slice(),
+      segs: s.segs.slice(0, s.segCount).map(g => ({ x: g.x, y: g.y })),
+      segCount: s.segCount, spacing: s.spacing,
+      minX: s.minX, maxX: s.maxX, minY: s.minY, maxY: s.maxY,
+      dropT: s.dropT, turnAcc: s.turnAcc, think: s.think, wander: s.wander,
+    })),
+    playerIdx: player ? snakes.indexOf(player) : -1,
+    foods: foods.map(f => ({ x: f.x, y: f.y, v: f.v, r: f.r, ci: f.ci, phase: f.phase })),
+    botTimers: botTimers.slice(),
+    tGame, playerHitCount, ambientFoodBudget,
+  };
+}
+
+// Restore the world from a state produced by exportState().
+export function importState(state) {
+  snakes.length = 0;
+  botTimers.length = 0;
+  player = null;
+  tGame = state.tGame;
+  playerHitCount = state.playerHitCount;
+  ambientFoodBudget = state.ambientFoodBudget;
+  resetFood();
+
+  for (const fd of state.foods) {
+    spawnFood(fd.x, fd.y, fd.v, fd.r, fd.ci);
+    foods[foods.length - 1].phase = fd.phase;
+  }
+
+  for (const sd of state.snakes) {
+    const s = new Snake(sd.x, sd.y, sd.ci, sd.bot);
+    s.dir = sd.dir; s.targetAngle = sd.targetAngle;
+    s.mass = sd.mass; s.boost = sd.boost;
+    s.alive = sd.alive; s.pendingDead = sd.pendingDead; s.deathCause = sd.deathCause;
+    s.pts = sd.pts.slice();
+    s.segs = sd.segs.map(g => ({ x: g.x, y: g.y }));
+    s.segCount = sd.segCount; s.spacing = sd.spacing;
+    s.minX = sd.minX; s.maxX = sd.maxX; s.minY = sd.minY; s.maxY = sd.maxY;
+    s.dropT = sd.dropT; s.turnAcc = sd.turnAcc; s.think = sd.think; s.wander = sd.wander;
+    snakes.push(s);
+  }
+
+  if (state.playerIdx >= 0) player = snakes[state.playerIdx];
+  for (const t of state.botTimers) botTimers.push(t);
 }

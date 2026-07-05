@@ -53,7 +53,11 @@ export function installStubs() {
   };
   const storage = (() => {
     const m = new Map();
-    return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    return {
+      getItem: k => (m.has(k) ? m.get(k) : null),
+      setItem: (k, v) => m.set(k, String(v)),
+      removeItem: k => m.delete(k),
+    };
   })();
   const win = {
     innerWidth: 1280, innerHeight: 720, devicePixelRatio: 1,

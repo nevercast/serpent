@@ -109,6 +109,16 @@
   }
   #hitFlash.flash { animation:playerBumped 0.5s ease-out forwards; }
   @media (prefers-reduced-motion: reduce) { #hitFlash.flash { animation-duration:1ms; } }
+  #pauseBtn {
+    position:fixed; top:calc(10px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+    z-index:3; background:transparent; border:none; cursor:pointer;
+    font-size:20px; padding:6px 14px; color:rgba(0,240,255,.65);
+    text-shadow:0 0 8px rgba(0,240,255,.4);
+    font-family:inherit; font-weight:800; letter-spacing:.12em;
+    line-height:1; border-radius:6px;
+  }
+  #pauseBtn:hover { color:#00f0ff; text-shadow:0 0 14px rgba(0,240,255,.9); }
+  #pauseBtn:focus-visible { outline:2px solid #fff; outline-offset:4px; }
 </style>
 </head>
 <body>
@@ -119,6 +129,7 @@
 <div id="hud">SCORE <b id="score">0</b><br>BEST <b id="best">0</b></div>
 
 <button id="boostBtn" aria-label="Boost">BOOST</button>
+<button id="pauseBtn" aria-label="Pause" class="hidden">❙❙</button>
 <div id="stick" aria-hidden="true"><div id="stickKnob"></div></div>
 
 <div id="menu" class="overlay">
@@ -137,6 +148,12 @@
   <div class="score-line">SCORE <span id="finalScore">0</span></div>
   <div class="sub">BEST <span id="bestDead">0</span></div>
   <button id="respawnBtn" class="btn">RESPAWN</button>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <h1>PAUSED</h1>
+  <button id="resumeBtn" class="btn">RESUME</button>
+  <button id="newGameBtn" class="btn">NEW GAME</button>
 </div>
 
 <script type="module" src="./src/main.js"></script>

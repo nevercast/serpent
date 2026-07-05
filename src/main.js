@@ -1,7 +1,7 @@
-// Entry point. Wires the DOM, owns the menu/play/dead state machine and the
+// Entry point. Wires the DOM, owns the menu/play/dead/paused state machine and the
 // high score, and runs the main loop: fixed-timestep simulation (deterministic
 // across 60/120/144Hz) with a render every animation frame.
-import { STEP, LS_KEY, MIN_BOOST_MASS } from './constants.js';
+import { STEP, LS_KEY, LS_PAUSE_KEY, MIN_BOOST_MASS } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
@@ -12,11 +12,12 @@ import './sprites.js';                 // build glow sprites at load
 const el = id => document.getElementById(id);
 const scoreEl = el('score'), bestEl = el('best');
 const finalEl = el('finalScore'), bestDeadEl = el('bestDead');
-const menuEl = el('menu'), deadEl = el('dead');
+const menuEl = el('menu'), deadEl = el('dead'), pauseEl = el('pause');
 const playBtn = el('playBtn'), respawnBtn = el('respawnBtn');
+const pauseBtn = el('pauseBtn'), resumeBtn = el('resumeBtn'), newGameBtn = el('newGameBtn');
 const hitFlashEl = el('hitFlash');
 
-const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead'
+const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead' | 'paused'
 let lastScore = -1;
 
 let best = 0;
@@ -28,14 +29,20 @@ function saveBest() { try { localStorage.setItem(LS_KEY, String(best)); } catch 
 // upgrades the quota bucket from "best effort" to "persistent".
 try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
 
+function clearPauseState() { try { localStorage.removeItem(LS_PAUSE_KEY); } catch (e) {} }
+
 function start() {
+  clearPauseState();
   const p = world.spawnPlayer();
   input.setAimAngle(p.dir);
   snapCamera();
   G.mode = 'play';
   lastScore = -1;
+  acc = 0;
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
+  pauseEl.classList.add('hidden');
+  pauseBtn.classList.remove('hidden');
 }
 function triggerBumped() {
   hitFlashEl.classList.remove('flash');
@@ -45,6 +52,7 @@ function triggerBumped() {
 }
 function gameOver() {
   G.mode = 'dead';
+  clearPauseState();
   if (navigator.vibrate) navigator.vibrate(300);
   const p = world.getPlayer();
   const sc = Math.floor(p.mass);
@@ -53,14 +61,43 @@ function gameOver() {
   bestEl.textContent = best;
   bestDeadEl.textContent = best;
   finalEl.textContent = sc;
+  pauseBtn.classList.add('hidden');
   deadEl.classList.remove('hidden');
 }
+
+function pause() {
+  G.mode = 'paused';
+  acc = 0;
+  try {
+    localStorage.setItem(LS_PAUSE_KEY, JSON.stringify(world.exportState()));
+  } catch (e) {}
+  pauseBtn.classList.add('hidden');
+  pauseEl.classList.remove('hidden');
+}
+
+function resume() {
+  clearPauseState();
+  G.mode = 'play';
+  lastScore = -1;
+  acc = 0;
+  last = performance.now();
+  pauseEl.classList.add('hidden');
+  pauseBtn.classList.remove('hidden');
+}
+
 playBtn.addEventListener('click', start);
 respawnBtn.addEventListener('click', start);
+pauseBtn.addEventListener('click', pause);
+resumeBtn.addEventListener('click', resume);
+newGameBtn.addEventListener('click', start);
 window.addEventListener('keydown', e => {
-  if ((e.code === 'Enter' || e.code === 'Space') && G.mode !== 'play') {
+  if ((e.code === 'Enter' || e.code === 'Space') && (G.mode === 'menu' || G.mode === 'dead')) {
     if (e.code === 'Space') e.preventDefault();
     start();
+  }
+  if (e.code === 'Escape') {
+    if (G.mode === 'play') pause();
+    else if (G.mode === 'paused') resume();
   }
 });
 
@@ -82,10 +119,12 @@ function loop(t) {
     input.setTouchBoostAvailable(false);
   }
 
-  acc += dt;
-  let steps = 0;
-  while (acc >= STEP && steps < 5) { world.update(STEP); acc -= STEP; steps++; }
-  if (steps === 5) acc = 0;          // don't spiral on very slow frames
+  if (G.mode !== 'paused') {
+    acc += dt;
+    let steps = 0;
+    while (acc >= STEP && steps < 5) { world.update(STEP); acc -= STEP; steps++; }
+    if (steps === 5) acc = 0;          // don't spiral on very slow frames
+  }
 
   if (G.mode === 'play') {
     const q = world.getPlayer();
@@ -111,13 +150,24 @@ function loop(t) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) saveBest();
+  if (document.hidden) { if (G.mode === 'play') pause(); else saveBest(); }
   else last = performance.now();
 });
 window.addEventListener('beforeunload', saveBest);
 
 view.initView();
 input.initInput();
-world.populate();
+
+// Restore a previously paused game, if any.
+let _savedPause = null;
+try { const _raw = localStorage.getItem(LS_PAUSE_KEY); if (_raw) _savedPause = JSON.parse(_raw); } catch (e) {}
+if (_savedPause) {
+  world.importState(_savedPause);
+  G.mode = 'paused';
+  menuEl.classList.add('hidden');
+  pauseEl.classList.remove('hidden');
+} else {
+  world.populate();
+}
 snapCamera();
 requestAnimationFrame(loop);

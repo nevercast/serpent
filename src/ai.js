@@ -28,6 +28,21 @@ export function selfBlocked(b, ang, dist) {
   return false;
 }
 
+// Steer back toward the middle once within margin M of an edge. Returns true
+// if it took over. Called every tick like the other reflexes below — it used
+// to live inside the slow-cadence pickBotTarget, which meant a bot that spent
+// many consecutive ticks dodging another snake near an edge could sail
+// straight into the wall while traffic-avoidance kept skipping its turn.
+export function avoidWall(b) {
+  const M = 300;
+  if (b.x < M || b.y < M || b.x > WORLD - M || b.y > WORLD - M) {
+    b.targetAngle = Math.atan2(WORLD / 2 - b.y, WORLD / 2 - b.x) + rand(-0.3, 0.3);
+    b.boost = false;
+    return true;
+  }
+  return false;
+}
+
 // Probe ahead for other snakes at a few ranges (near/mid/far); steer away if
 // something's in the path. Returns true if an evasive heading was set. Called
 // every tick (not gated by the bot's slower think cadence) — a fast-closing
@@ -92,19 +107,12 @@ export function guardSelfCollision(b) {
   }
 }
 
-export function botThink(b, snakes) {
+export function botThink(b) {
   b.think = 0.12 + Math.random() * 0.1;
-  pickBotTarget(b, snakes);
+  pickBotTarget(b);
 }
 
-function pickBotTarget(b, snakes) {
-  const M = 300;
-  // steer back toward the middle near walls
-  if (b.x < M || b.y < M || b.x > WORLD - M || b.y > WORLD - M) {
-    b.targetAngle = Math.atan2(WORLD / 2 - b.y, WORLD / 2 - b.x) + rand(-0.3, 0.3);
-    b.boost = false;
-    return;
-  }
+function pickBotTarget(b) {
   // anti-spiral governor: a wound-up one-way turn is how a snake coils onto its
   // own tail. Unwind before chasing anything.
   if (Math.abs(b.turnAcc) > 3.8) {
@@ -112,7 +120,6 @@ function pickBotTarget(b, snakes) {
     b.boost = false;
     return;
   }
-  if (avoidTraffic(b, snakes)) return;
   b.boost = false;
 
   // Seek nearest REACHABLE food. A pellet inside the min turning circle can't be

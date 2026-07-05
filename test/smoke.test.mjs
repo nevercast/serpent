@@ -40,13 +40,19 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 32, preventDefault() {} });
   assert.equal(h.els.boostBtn.classList.contains('on'), true, 'available boost button presses');
   h.fireEl('stick', 'pointermove', { pointerId: 31, clientX: 1160, clientY: 560 });
+  h.fireEl('stick', 'lostpointercapture', { pointerId: 31 });
+  assert.equal(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'lost joystick capture recenters the knob');
+  h.fireEl('stick', 'pointerdown', { pointerId: 33, clientX: 1192, clientY: 628, preventDefault() {} });
+  h.fireEl('stick', 'pointermove', { pointerId: 33, clientX: 1160, clientY: 560 });
+  assert.notEqual(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'joystick accepts a new touch after lost capture');
   h.advance(60, 16.7);
   // stray extra touches must be ignored, then release out of order
-  h.fireEl('stick', 'pointerdown', { pointerId: 33, clientX: 1192, clientY: 628, preventDefault() {} });
+  h.fireEl('stick', 'pointerdown', { pointerId: 35, clientX: 1192, clientY: 628, preventDefault() {} });
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 34, preventDefault() {} });
   h.fireEl('boostBtn', 'pointerup', { pointerId: 32 });
   h.advance(30, 16.7);
-  h.fireEl('stick', 'pointerup', { pointerId: 31 });
+  h.fireWin('pointerup', { pointerId: 33 });
+  assert.equal(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'window-level pointerup releases the joystick');
 
   // keyboard boost, resize to portrait, slow frames (accumulator clamp), visibility
   h.fireWin('keydown', { code: 'Space', preventDefault() {} });

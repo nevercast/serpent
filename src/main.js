@@ -6,6 +6,7 @@ import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
 import { render, snapCamera } from './render.js';
+import { popPlayerHits } from './world.js';
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
@@ -32,16 +33,16 @@ function start() {
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
 }
-function triggerSelfHit() {
+function triggerBumped() {
   hitFlashEl.classList.remove('flash');
   void hitFlashEl.offsetWidth;          // force reflow to restart the animation
   hitFlashEl.classList.add('flash');
-  if (navigator.vibrate) navigator.vibrate(120);
+  if (navigator.vibrate) navigator.vibrate(80);
 }
 function gameOver() {
   G.mode = 'dead';
+  if (navigator.vibrate) navigator.vibrate(300);
   const p = world.getPlayer();
-  if (p.deathCause === 'self') triggerSelfHit();
   const sc = Math.floor(p.mass);
   if (sc > best) best = sc;
   saveBest();
@@ -78,6 +79,8 @@ function loop(t) {
   let steps = 0;
   while (acc >= STEP && steps < 5) { world.update(STEP); acc -= STEP; steps++; }
   if (steps === 5) acc = 0;          // don't spiral on very slow frames
+
+  if (G.mode === 'play' && world.popPlayerHits() > 0) triggerBumped();
 
   if (G.mode === 'play') {
     const q = world.getPlayer();

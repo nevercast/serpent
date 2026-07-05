@@ -11,7 +11,7 @@ import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
 const scoreEl = el('score'), bestEl = el('best');
-const killsEl = el('kills');
+const killsEl = el('kills'), killsLineEl = el('killsLine');
 const finalEl = el('finalScore'), bestDeadEl = el('bestDead');
 const finalKillsEl = el('finalKills'), bestKillsDeadEl = el('bestKillsDead');
 const menuEl = el('menu'), deadEl = el('dead'), pauseEl = el('pause');
@@ -50,6 +50,7 @@ function start() {
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
   pauseEl.classList.add('hidden');
+  killsLineEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
 }
 function triggerBumped() {
@@ -156,7 +157,11 @@ function loop(t) {
         if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
       const kc = getPlayerKillCount();
-      if (kc !== lastKills) { lastKills = kc; killsEl.textContent = kc; }
+      if (kc !== lastKills) {
+        lastKills = kc;
+        killsEl.textContent = kc;
+        if (kc > 0) killsLineEl.classList.remove('hidden');
+      }
       if (world.popPlayerHits() > 0) triggerBumped();
     }
   }

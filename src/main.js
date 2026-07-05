@@ -80,9 +80,8 @@ function loop(t) {
   while (acc >= STEP && steps < 5) { world.update(STEP); acc -= STEP; steps++; }
   if (steps === 5) acc = 0;          // don't spiral on very slow frames
 
-  if (G.mode === 'play' && world.popPlayerHits() > 0) triggerBumped();
-
   if (G.mode === 'play') {
+    if (world.popPlayerHits() > 0) triggerBumped();
     const q = world.getPlayer();
     if (q && !q.alive) gameOver();
   }

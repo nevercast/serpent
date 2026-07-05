@@ -5,6 +5,8 @@ import { rand, clamp } from './math.js';
 
 export const foods = [];
 export const cells = new Map();       // int cell key -> array of food refs
+const AMBIENT_RESPAWN_SAMPLES = 8;
+const AMBIENT_RESPAWN_RADIUS = 2;
 
 export function cellKey(x, y) {
   const cx = clamp((x / CELL) | 0, 0, CELLS - 1);
@@ -53,6 +55,31 @@ export function killFood(f) {
 }
 export function spawnRandomFood() {
   spawnFood(rand(40, WORLD - 40), rand(40, WORLD - 40), 1, rand(3, 5.5), (Math.random() * NEON.length) | 0);
+}
+function localFoodDensity(cx, cy) {
+  let count = 0, area = 0;
+  for (let gy = Math.max(0, cy - AMBIENT_RESPAWN_RADIUS); gy <= Math.min(CELLS - 1, cy + AMBIENT_RESPAWN_RADIUS); gy++) {
+    for (let gx = Math.max(0, cx - AMBIENT_RESPAWN_RADIUS); gx <= Math.min(CELLS - 1, cx + AMBIENT_RESPAWN_RADIUS); gx++) {
+      area++;
+      const arr = cells.get(gx + gy * CELLS);
+      if (arr) count += arr.length;
+    }
+  }
+  return count / area;
+}
+export function spawnAmbientFood() {
+  let bestX = 0, bestY = 0, bestDensity = Infinity, bestEdge = -1;
+  for (let i = 0; i < AMBIENT_RESPAWN_SAMPLES; i++) {
+    const x = rand(40, WORLD - 40), y = rand(40, WORLD - 40);
+    const cx = clamp((x / CELL) | 0, 0, CELLS - 1);
+    const cy = clamp((y / CELL) | 0, 0, CELLS - 1);
+    const density = localFoodDensity(cx, cy);
+    const edge = Math.min(cx, cy, CELLS - 1 - cx, CELLS - 1 - cy);
+    if (density < bestDensity || (density === bestDensity && edge > bestEdge)) {
+      bestX = x; bestY = y; bestDensity = density; bestEdge = edge;
+    }
+  }
+  spawnFood(bestX, bestY, 1, rand(3, 5.5), (Math.random() * NEON.length) | 0);
 }
 export function resetFood() {
   foods.length = 0;

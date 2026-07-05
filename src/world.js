@@ -1,9 +1,9 @@
 // The simulation core: owns the snake roster and advances the world one fixed
 // step at a time. Deliberately DOM-free so the test suite can drive it headless.
 // Input application, HUD and game-over UI live in the browser layer (main.js).
-import { WORLD, BOT_COUNT, TARGET_FOOD, CELL, CELLS, START_MASS, NEON } from './constants.js';
+import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CELLS, START_MASS, NEON } from './constants.js';
 import { rand } from './math.js';
-import { foods, cells, spawnRandomFood, killFood, moveFoodCell, resetFood } from './food.js';
+import { foods, cells, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
 import { botThink } from './ai.js';
 
@@ -11,6 +11,7 @@ export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
 let player = null;
 let tGame = 0;
+let ambientFoodBudget = 0;
 
 export function getPlayer() { return player; }
 
@@ -134,8 +135,13 @@ export function update(dt) {
   tGame += dt;
 
   if (foods.length < TARGET_FOOD) {
-    spawnRandomFood();
-    if (foods.length < TARGET_FOOD * 0.7) spawnRandomFood();
+    ambientFoodBudget += AMBIENT_FOOD_RESPAWNS_PER_SEC * dt;
+    while (foods.length < TARGET_FOOD && ambientFoodBudget >= 1) {
+      spawnAmbientFood();
+      ambientFoodBudget--;
+    }
+  } else {
+    ambientFoodBudget = 0;
   }
   for (let i = botTimers.length - 1; i >= 0; i--) {
     botTimers[i] -= dt;
@@ -164,5 +170,6 @@ export function resetWorld() {
   botTimers.length = 0;
   player = null;
   tGame = 0;
+  ambientFoodBudget = 0;
   resetFood();
 }

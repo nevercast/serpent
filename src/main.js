@@ -1,7 +1,7 @@
 // Entry point. Wires the DOM, owns the menu/play/dead state machine and the
 // high score, and runs the main loop: fixed-timestep simulation (deterministic
 // across 60/120/144Hz) with a render every animation frame.
-import { STEP, LS_KEY } from './constants.js';
+import { STEP, LS_KEY, MIN_BOOST_MASS } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
@@ -63,6 +63,9 @@ function loop(t) {
   if (G.mode === 'play' && p && p.alive) {
     p.targetAngle = input.getAim();
     p.boost = input.boostHeld();
+    input.setTouchBoostAvailable(p.mass > MIN_BOOST_MASS);
+  } else {
+    input.setTouchBoostAvailable(false);
   }
 
   acc += dt;

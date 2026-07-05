@@ -13,7 +13,7 @@ test('browser entry boots and handles all input paths without throwing', async (
 
   h.advance(60, 16.7);                  // idle menu frames
   h.fireEl('playBtn', 'click', {});     // start the game
-  h.advance(60, 16.7);
+  h.advance(1, 16.7);
   assert.equal(h.els.score.textContent, '0', 'score starts at zero for the initial mass');
   assert.equal(h.els.boostBtn.classList.contains('disabled'), true, 'boost button starts unavailable');
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 30, preventDefault() {} });

@@ -1,17 +1,19 @@
 // Entry point. Wires the DOM, owns the menu/play/dead/paused state machine and the
 // high score, and runs the main loop: fixed-timestep simulation (deterministic
 // across 60/120/144Hz) with a render every animation frame.
-import { STEP, LS_KEY, LS_PAUSE_KEY, MIN_BOOST_MASS, START_MASS } from './constants.js';
+import { STEP, LS_KEY, LS_BEST_KILLS_KEY, LS_PAUSE_KEY, MIN_BOOST_MASS, START_MASS } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
 import * as view from './view.js';
 import { render, snapCamera } from './render.js';
-import { popPlayerHits } from './world.js';
+import { popPlayerHits, getPlayerKillCount } from './world.js';
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
 const scoreEl = el('score'), bestEl = el('best');
+const killsEl = el('kills'), killsLineEl = el('killsLine');
 const finalEl = el('finalScore'), bestDeadEl = el('bestDead');
+const finalKillsEl = el('finalKills'), bestKillsDeadEl = el('bestKillsDead');
 const menuEl = el('menu'), deadEl = el('dead'), pauseEl = el('pause');
 const playBtn = el('playBtn'), respawnBtn = el('respawnBtn');
 const pauseBtn = el('pauseBtn'), resumeBtn = el('resumeBtn'), newGameBtn = el('newGameBtn');
@@ -19,11 +21,16 @@ const hitFlashEl = el('hitFlash');
 
 const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead' | 'paused'
 let lastScore = -1;
+let lastKills = -1;
 
 let best = 0;
 try { best = +localStorage.getItem(LS_KEY) || 0; } catch (e) {}
 bestEl.textContent = best;
 function saveBest() { try { localStorage.setItem(LS_KEY, String(best)); } catch (e) {} }
+
+let bestKills = 0;
+try { bestKills = +localStorage.getItem(LS_BEST_KILLS_KEY) || 0; } catch (e) {}
+function saveBestKills() { try { localStorage.setItem(LS_BEST_KILLS_KEY, String(bestKills)); } catch (e) {} }
 // Request persistent storage so the browser won't evict our high score under
 // storage pressure. localStorage remains the storage medium; persistence just
 // upgrades the quota bucket from "best effort" to "persistent".
@@ -39,10 +46,12 @@ function start() {
   snapCamera();
   G.mode = 'play';
   lastScore = -1;
+  lastKills = -1;
   acc = 0;
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
   pauseEl.classList.add('hidden');
+  killsLineEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
 }
 function triggerBumped() {
@@ -62,6 +71,10 @@ function gameOver() {
   bestEl.textContent = best;
   bestDeadEl.textContent = best;
   finalEl.textContent = sc;
+  const kills = getPlayerKillCount();
+  if (kills > bestKills) { bestKills = kills; saveBestKills(); }
+  finalKillsEl.textContent = kills;
+  bestKillsDeadEl.textContent = bestKills;
   pauseBtn.classList.add('hidden');
   deadEl.classList.remove('hidden');
 }
@@ -80,6 +93,7 @@ function resume() {
   clearPauseState();
   G.mode = 'play';
   lastScore = -1;
+  lastKills = -1;
   acc = 0;
   last = performance.now();
   pauseEl.classList.add('hidden');
@@ -143,6 +157,12 @@ function loop(t) {
         scoreEl.textContent = sc;
         if (sc > best) { best = sc; bestEl.textContent = best; saveBest(); }
       }
+      const kc = getPlayerKillCount();
+      if (kc !== lastKills) {
+        lastKills = kc;
+        killsEl.textContent = kc;
+        if (kc > 0) killsLineEl.classList.remove('hidden');
+      }
       if (world.popPlayerHits() > 0) triggerBumped();
     }
   }
@@ -151,10 +171,10 @@ function loop(t) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { if (G.mode === 'play') pause(); else saveBest(); }
+  if (document.hidden) { if (G.mode === 'play') pause(); else { saveBest(); saveBestKills(); } }
   else last = performance.now();
 });
-window.addEventListener('beforeunload', saveBest);
+window.addEventListener('beforeunload', () => { saveBest(); saveBestKills(); });
 
 view.initView();
 input.initInput();

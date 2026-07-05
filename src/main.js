@@ -41,7 +41,7 @@ function triggerSelfHit() {
 function gameOver() {
   G.mode = 'dead';
   const p = world.getPlayer();
-  if (p && p.deathCause === 'self') triggerSelfHit();
+  if (p.deathCause === 'self') triggerSelfHit();
   const sc = Math.floor(p.mass);
   if (sc > best) best = sc;
   saveBest();

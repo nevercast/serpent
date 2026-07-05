@@ -6,10 +6,21 @@ import { cssW, cssH } from './view.js';
 
 let aimAngle = -Math.PI / 2;
 let mouseHeld = false, keyBoost = false, btnBoost = false;
+let touchBoostAvailable = false;
 
 export function getAim() { return aimAngle; }
 export function setAimAngle(a) { aimAngle = a; }
 export function boostHeld() { return mouseHeld || keyBoost || btnBoost; }
+export function setTouchBoostAvailable(v) {
+  touchBoostAvailable = !!v;
+  if (!boostBtn) return;
+  boostBtn.classList.toggle('disabled', !touchBoostAvailable);
+  if (!touchBoostAvailable) {
+    boostId = null;
+    btnBoost = false;
+    boostBtn.classList.remove('on');
+  }
+}
 
 const STICK_R = 52;              // max joystick knob travel, px
 let stick, knob, boostBtn;
@@ -24,6 +35,7 @@ export function initInput() {
   stick = document.getElementById('stick');
   knob = document.getElementById('stickKnob');
   boostBtn = document.getElementById('boostBtn');
+  setTouchBoostAvailable(false);
 
   // ---- desktop mouse ----
   window.addEventListener('pointerdown', e => {
@@ -68,7 +80,7 @@ export function initInput() {
 
   // ---- touch boost button (left) ----
   boostBtn.addEventListener('pointerdown', e => {
-    if (boostId !== null) return;
+    if (!touchBoostAvailable || boostId !== null) return;
     boostId = e.pointerId;
     btnBoost = true;
     boostBtn.classList.add('on');

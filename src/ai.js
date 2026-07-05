@@ -2,7 +2,10 @@
 // botThink then runs a safety filter that rejects headings which predictably
 // run into the bot's own body, walls, or opponent bodies.
 import { TAU, rand, clamp, angDiff } from './math.js';
-import { WORLD, BASE_SPEED, CELL, CELLS } from './constants.js';
+import {
+  WORLD, BASE_SPEED, CELL, CELLS,
+  BOT_NAV_MODE, BOT_NAV_MODES, BOT_AVOIDANCE_MODE, BOT_AVOIDANCE_MODES
+} from './constants.js';
 import { cells } from './food.js';
 
 function turnRateForRadius(radius) {
@@ -42,6 +45,23 @@ export function selfBlocked(b, ang, dist) {
   return false;
 }
 
+function legacySelfBlocked(b, ang, dist) {
+  const skip = Math.ceil(70 / b.spacing);
+  const rr = b.headR + b.radius + 10, rr2 = rr * rr;
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  const segs = b.segs;
+  for (let k = 1; k <= 3; k++) {
+    const d = dist * k / 3;
+    const qx = b.x + ca * d, qy = b.y + sa * d;
+    for (let i = skip; i < b.segCount; i += 2) {
+      const g = segs[i];
+      const dx = g.x - qx, dy = g.y - qy;
+      if (dx * dx + dy * dy < rr2) return true;
+    }
+  }
+  return false;
+}
+
 function wallBlocked(b, ang, dist) {
   const margin = b.headR + 18;
   for (const p of projectedPath(b, ang, dist)) {
@@ -70,6 +90,10 @@ function opponentBlocked(b, snakes, ang, dist) {
 
 function hazardBlocked(b, snakes, ang, dist) {
   return selfBlocked(b, ang, dist) || wallBlocked(b, ang, dist) || opponentBlocked(b, snakes, ang, dist);
+}
+
+function legacyHazardBlocked(b, ang, dist) {
+  return legacySelfBlocked(b, ang, dist) || wallBlocked(b, ang, dist);
 }
 
 function nearbyOwnBodyAhead(b) {
@@ -111,7 +135,29 @@ function findSafeHeading(b, snakes, preferred, look, fallback) {
   return best ?? fallback;
 }
 
-export function botAvoidHazards(b, snakes) {
+function findLegacySafeHeading(b, preferred, look, fallback) {
+  const sgn = Math.sign(angDiff(fallback, preferred)) || 1;
+  for (let k = 1; k <= 5; k++) {
+    const cand = preferred + sgn * k * 0.55;
+    if (!legacyHazardBlocked(b, cand, look)) return cand;
+  }
+  return fallback;
+}
+
+function botAvoidLegacy(b) {
+  if (b.segCount <= 24) return;
+  const look = 90 + b.radius * 3;
+  if (!legacyHazardBlocked(b, b.targetAngle, look) && !legacyHazardBlocked(b, b.dir, 55 + b.radius * 2)) return;
+
+  const segs = b.segs;
+  let sx = 0, sy = 0;
+  for (let i = 0; i < b.segCount; i++) { sx += segs[i].x; sy += segs[i].y; }
+  const comA = Math.atan2(b.y - sy / b.segCount, b.x - sx / b.segCount);
+  b.targetAngle = findLegacySafeHeading(b, b.targetAngle, look, comA);
+  b.boost = false;
+}
+
+function botAvoidPredictive(b, snakes) {
   if (b.segCount <= 24) return;
   const look = 260 + b.radius * 5;
   if (!hazardBlocked(b, snakes, b.targetAngle, look) && !hazardBlocked(b, snakes, b.dir, 160 + b.radius * 3)) return;
@@ -126,13 +172,41 @@ export function botAvoidHazards(b, snakes) {
   b.boost = false;
 }
 
-export function botThink(b, snakes) {
-  b.think = 0.12 + Math.random() * 0.1;
-  pickBotTarget(b, snakes);
-  botAvoidHazards(b, snakes);
+export function botAvoidHazards(b, snakes, mode = BOT_AVOIDANCE_MODE) {
+  switch (mode) {
+    case BOT_AVOIDANCE_MODES.LEGACY:
+      botAvoidLegacy(b);
+      break;
+    case BOT_AVOIDANCE_MODES.PREDICTIVE:
+    case BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK:
+      botAvoidPredictive(b, snakes);
+      break;
+    default:
+      throw new Error(`Unknown bot avoidance mode: ${mode}`);
+  }
 }
 
-function pickBotTarget(b, snakes) {
+export function shouldRunBotAvoidanceEveryTick(mode = BOT_AVOIDANCE_MODE) {
+  switch (mode) {
+    case BOT_AVOIDANCE_MODES.LEGACY:
+    case BOT_AVOIDANCE_MODES.PREDICTIVE:
+      return false;
+    case BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK:
+      return true;
+    default:
+      throw new Error(`Unknown bot avoidance mode: ${mode}`);
+  }
+}
+
+export function botThink(b, snakes, options = {}) {
+  const navMode = options.navMode ?? BOT_NAV_MODE;
+  const avoidanceMode = options.avoidanceMode ?? BOT_AVOIDANCE_MODE;
+  b.think = 0.12 + Math.random() * 0.1;
+  pickBotTarget(b, snakes, navMode);
+  botAvoidHazards(b, snakes, avoidanceMode);
+}
+
+function pickBotTarget(b, snakes, navMode) {
   const M = 300;
   // Steer back toward the middle near walls.
   if (b.x < M || b.y < M || b.x > WORLD - M || b.y > WORLD - M) {
@@ -147,11 +221,20 @@ function pickBotTarget(b, snakes) {
     b.boost = false;
     return;
   }
-  const ownAhead = nearbyOwnBodyAhead(b);
-  if (ownAhead) {
-    b.targetAngle = Math.atan2(b.y - ownAhead.y, b.x - ownAhead.x);
-    b.boost = false;
-    return;
+  switch (navMode) {
+    case BOT_NAV_MODES.STANDARD:
+      break;
+    case BOT_NAV_MODES.SELF_AWARE: {
+      const ownAhead = nearbyOwnBodyAhead(b);
+      if (ownAhead) {
+        b.targetAngle = Math.atan2(b.y - ownAhead.y, b.x - ownAhead.x);
+        b.boost = false;
+        return;
+      }
+      break;
+    }
+    default:
+      throw new Error(`Unknown bot navigation mode: ${navMode}`);
   }
   // Probe ahead for other snakes; steer away if something's in the path.
   const opd = 90 + b.radius * 3;

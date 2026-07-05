@@ -5,7 +5,7 @@ import { WORLD, BOT_COUNT, TARGET_FOOD, AMBIENT_FOOD_RESPAWNS_PER_SEC, CELL, CEL
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
-import { botThink, botAvoidHazards } from './ai.js';
+import { botThink, botAvoidHazards, shouldRunBotAvoidanceEveryTick } from './ai.js';
 
 export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
@@ -149,8 +149,13 @@ export function eat(s, dt) {
 
 // Advance the whole world one step. Player heading/boost must be set by the
 // caller beforehand (main.js applies input); bots decide for themselves here.
-export function update(dt) {
+export function update(dt, options = {}) {
   tGame += dt;
+  const botOptions = {
+    navMode: options.navMode,
+    avoidanceMode: options.avoidanceMode,
+  };
+  const avoidEveryTick = shouldRunBotAvoidanceEveryTick(options.avoidanceMode);
 
   if (foods.length < TARGET_FOOD) {
     ambientFoodBudget += AMBIENT_FOOD_RESPAWNS_PER_SEC * dt;
@@ -168,8 +173,8 @@ export function update(dt) {
   for (const s of snakes) {
     if (s.bot) {
       s.think -= dt;
-      if (s.think <= 0) botThink(s, snakes);
-      else botAvoidHazards(s, snakes);
+      if (s.think <= 0) botThink(s, snakes, botOptions);
+      else if (avoidEveryTick) botAvoidHazards(s, snakes, options.avoidanceMode);
     }
     s.update(dt);
   }

@@ -19,6 +19,18 @@ export const BOT_COUNT = 30;
 export const TARGET_FOOD = 1450, MAX_FOOD = 3000;
 export const AMBIENT_FOOD_RESPAWNS_PER_SEC = 120;
 
+export const BOT_NAV_MODES = Object.freeze({
+  STANDARD: 'standard',
+  SELF_AWARE: 'self-aware',
+});
+export const BOT_AVOIDANCE_MODES = Object.freeze({
+  LEGACY: 'legacy',
+  PREDICTIVE: 'predictive',
+  PREDICTIVE_EVERY_TICK: 'predictive-every-tick',
+});
+export const BOT_NAV_MODE = BOT_NAV_MODES.SELF_AWARE;
+export const BOT_AVOIDANCE_MODE = BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK;
+
 export const CELL = 120;              // spatial-hash cell size, px
 export const CELLS = Math.ceil(WORLD / CELL);
 export const STEP = 1 / 60;           // fixed simulation timestep, seconds

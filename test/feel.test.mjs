@@ -4,7 +4,10 @@ import { cameraGrow, BASE_SPEED, BOOST_SPEED } from '../src/constants.js';
 import { Snake } from '../src/snake.js';
 
 test('camera zoom growth is gentler for large snakes', () => {
-  const oldGrow = r => 1 + Math.min(1, Math.max(0, r - 7) * 0.05);
+  const OLD_CAMERA_GROW_START_R = 7;
+  const OLD_CAMERA_GROW_RATE = 0.05;
+  const OLD_CAMERA_GROW_MAX = 1;
+  const oldGrow = r => 1 + Math.min(OLD_CAMERA_GROW_MAX, Math.max(0, r - OLD_CAMERA_GROW_START_R) * OLD_CAMERA_GROW_RATE);
   assert.equal(cameraGrow(7), 1);
   assert.ok(cameraGrow(12) < oldGrow(12), 'mid-size snakes should keep more screen presence');
   assert.ok(cameraGrow(32) < oldGrow(32), 'large snakes should zoom out less than before');

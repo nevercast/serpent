@@ -1,4 +1,4 @@
-// Tests for the pause feature: world state export/import and localStorage key.
+// Pause-state tests: world exportState/importState round-trip and localStorage key.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as world from '../src/world.js';

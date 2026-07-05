@@ -3,15 +3,30 @@
 // resize, slow frames and tab-visibility. Guards against import/wiring breakage.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { installStubs } from './helpers/dom-stub.js';
-import { MIN_BOOST_MASS, START_MASS } from '../src/constants.js';
+import { LS_GAMES_PLAYED_KEY, LS_XP_KEY, MIN_BOOST_MASS, START_MASS } from '../src/constants.js';
 import * as world from '../src/world.js';
+
+test('main menu places Resume before New Game', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.indexOf('id="menuResumeBtn"') < html.indexOf('id="playBtn"'), 'Resume appears above New Game in the menu markup');
+  assert.equal(html.includes('id="bestDead"'), false, 'best score is reserved for the main menu');
+  assert.equal(html.includes('id="bestKillsDead"'), false, 'best kills is reserved for the main menu');
+});
 
 test('browser entry boots and handles all input paths without throwing', async () => {
   const h = installStubs();
   await import('../src/main.js');       // boots into menu + starts the loop
 
   h.advance(60, 16.7);                  // idle menu frames
+  assert.equal(h.els.menu.classList.contains('hidden'), false, 'main menu is visible on boot');
+  assert.equal(h.els.playBtn.textContent, 'NEW GAME', 'main menu starts fresh games');
+  assert.equal(h.els.gamesPlayed.textContent, '0', 'main menu shows games played');
+  assert.equal(h.els.playerLevel.textContent, 'LEVEL 1', 'main menu labels XP section with current level');
+  assert.equal(h.els.xpProgress.textContent, '0 / 500 XP', 'main menu XP tally includes XP unit');
+  assert.equal(h.els.nextLevel.textContent, '+500 XP TO REACH LEVEL 2', 'main menu shows XP needed for next level');
+  assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), true, 'resume is hidden without a pause save');
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(1, 16.7);
   assert.equal(h.els.score.textContent, '0', 'score starts at zero for the initial mass');
@@ -81,6 +96,13 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'pause releases active joystick input');
   assert.ok(h.win.localStorage.getItem('neon-serpent-pause') !== null, 'pause state saved to localStorage');
 
+  h.fireEl('returnMenuBtn', 'click', {});
+  assert.equal(h.els.menu.classList.contains('hidden'), false, 'Return to Menu shows main menu');
+  assert.equal(h.els.pause.classList.contains('hidden'), true, 'pause overlay hidden after Return to Menu');
+  assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), false, 'main menu offers Resume when a pause save exists');
+  h.advance(30, 16.7);                  // menu preview should not become the real run
+  h.fireEl('menuResumeBtn', 'click', {});
+  assert.equal(h.els.pause.classList.contains('hidden'), false, 'menu Resume reloads the paused state');
   h.fireEl('resumeBtn', 'click', {});
   assert.equal(h.els.pause.classList.contains('hidden'), true, 'pause overlay hidden after resume');
   assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible after resume');
@@ -92,11 +114,33 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireWin('keydown', { code: 'Escape' });
   assert.equal(h.els.pause.classList.contains('hidden'), true, 'second Escape resumes game');
 
-  // new game from pause overlay
-  h.fireWin('keydown', { code: 'Escape' });   // pause again
-  h.fireEl('newGameBtn', 'click', {});
-  assert.equal(h.els.pause.classList.contains('hidden'), true, 'pause overlay hidden after New Game');
-  assert.equal(h.els.pauseBtn.classList.contains('hidden'), false, 'pause button visible after New Game');
+  const q = world.getPlayer();
+  const killsAtDeath = world.getPlayerKillCount();
+  const foodAtDeath = world.getPlayerFoodCount();
+  q.mass = START_MASS + 1200;
+  q.alive = false;
+  h.advance(1, 16.7);
+  assert.equal(h.els.dead.classList.contains('hidden'), false, 'dead overlay visible after player death');
+  assert.equal(h.win.localStorage.getItem(LS_GAMES_PLAYED_KEY), '1', 'game result is saved before death animation completes');
+  assert.equal(h.win.localStorage.getItem(LS_XP_KEY), '1200', 'XP is saved before death animation completes');
+  assert.equal(h.els.deadActions.classList.contains('hidden'), true, 'death actions hidden while results animate');
+  assert.equal(h.els.deathImpact.textContent, `+${killsAtDeath} KILLS`, 'kills impact appears first');
+  h.advance(84, 16.7);
+  assert.equal(h.els.deathImpact.textContent, `+${killsAtDeath} KILLS`, 'kills stays present for at least 1.5 seconds');
+  h.advance(25, 16.7);
+  assert.equal(h.els.deathImpact.textContent, `+${foodAtDeath} FOOD`, 'food impact follows kills');
+  h.advance(110, 16.7);
+  assert.equal(h.els.deathScoreLine.classList.contains('hidden'), false, 'score tally appears after food');
+  assert.equal(h.els.deathXpPanel.classList.contains('hidden'), false, 'XP progress appears with score tally');
+  h.advance(520, 16.7);
+  assert.equal(h.els.finalScore.textContent, '1200', 'score tally reaches final score');
+  assert.equal(h.els.deathLevelText.textContent, 'REACHED LEVEL 3', 'final level text reflects level-up result');
+  assert.equal(h.els.deadActions.classList.contains('hidden'), false, 'death actions appear after XP completes');
+  assert.equal(h.els.deadActions.classList.contains('ready'), true, 'death actions fade into the ready state');
+  assert.equal(h.els.respawnBtn.textContent, 'NEW GAME', 'death screen restart action is labeled New Game');
+  h.fireEl('deadMenuBtn', 'click', {});
+  assert.equal(h.els.menu.classList.contains('hidden'), false, 'dead screen Main Menu button shows main menu');
+  assert.equal(h.els.dead.classList.contains('hidden'), true, 'dead overlay hidden after Return to Menu');
 
   assert.ok(true, 'reached the end with no exceptions');
 });

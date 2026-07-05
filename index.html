@@ -55,9 +55,133 @@
   .btn:hover { transform:scale(1.05); box-shadow:0 0 26px rgba(0,240,255,.9), inset 0 0 20px rgba(0,240,255,.4); }
   .btn:active { transform:scale(.97); }
   .btn:focus-visible { outline:2px solid #fff; outline-offset:4px; }
-  #dead h1 { text-shadow:0 0 10px #ff3355, 0 0 30px #ff3355, 0 0 70px rgba(255,51,85,.8); }
+  #dead {
+    gap:clamp(24px, 4.5vh, 42px);
+    padding-block:calc(28px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-bottom));
+  }
+  #dead h1 {
+    line-height:1;
+    text-shadow:0 0 10px #ff3355, 0 0 30px #ff3355, 0 0 70px rgba(255,51,85,.8);
+  }
   .score-line { font-size:clamp(16px,4vw,24px); font-weight:800; letter-spacing:.2em; color:#fff;
     text-shadow:0 0 12px rgba(255,230,0,.9); }
+  .death-sequence {
+    width:min(560px, 92vw);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    gap:clamp(10px, 2vh, 18px);
+  }
+  .death-impact {
+    min-height:58px;
+    font-size:clamp(26px,7vw,54px);
+    font-weight:800;
+    letter-spacing:.16em;
+    color:#fff;
+    text-shadow:0 0 12px #ffe600, 0 0 36px rgba(255,45,247,.75);
+  }
+  .death-impact.bump { animation:impactBump .34s cubic-bezier(.16,1.35,.35,1) both; }
+  .death-impact.drop { animation:impactDrop .28s ease-in both; }
+  .death-score {
+    line-height:1.08;
+    font-size:clamp(24px,7vw,56px);
+    font-weight:800;
+    letter-spacing:.18em;
+    color:#fff;
+    text-shadow:0 0 12px rgba(255,230,0,.95), 0 0 34px rgba(255,230,0,.55);
+  }
+  .death-score.bump { animation:impactBump .34s cubic-bezier(.16,1.35,.35,1) both; }
+  .death-xp {
+    width:min(460px, 88vw);
+    display:grid;
+    gap:8px;
+    margin-top:2px;
+  }
+  .death-xp .xp-track { height:20px; }
+  .death-level-text {
+    min-height:24px;
+    font-size:clamp(13px,3vw,18px);
+    font-weight:800;
+    letter-spacing:.2em;
+    color:#ffe600;
+    text-shadow:0 0 12px rgba(255,230,0,.8), 0 0 30px rgba(255,45,247,.55);
+  }
+  .death-level-text.bump { animation:impactBump .34s cubic-bezier(.16,1.35,.35,1) both; }
+  .dead-actions {
+    margin-top:clamp(8px, 2vh, 18px);
+    opacity:0;
+    transform:translateY(10px);
+    pointer-events:none;
+    transition:opacity .45s ease, transform .45s ease;
+  }
+  .dead-actions.ready {
+    opacity:1;
+    transform:translateY(0);
+    pointer-events:auto;
+  }
+  @keyframes impactBump {
+    0% { opacity:0; transform:scale(.72); filter:brightness(1); }
+    55% { opacity:1; transform:scale(1.12); filter:brightness(1.7); }
+    100% { opacity:1; transform:scale(1); filter:brightness(1); }
+  }
+  @keyframes impactDrop {
+    0% { opacity:1; transform:translateY(0) scale(1); }
+    100% { opacity:0; transform:translateY(32px) scale(.88); }
+  }
+  .menu-stats {
+    width:min(560px, 92vw);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 18px;
+    padding:4px 0;
+    text-align:left;
+    font-size:clamp(10px,2.1vw,13px);
+    letter-spacing:.13em;
+    color:#9ad;
+  }
+  .menu-stat {
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    border-bottom:1px solid rgba(0,240,255,.16);
+    padding:0 0 7px;
+    white-space:nowrap;
+  }
+  .menu-stat b { color:#fff; text-shadow:0 0 10px rgba(0,240,255,.8); }
+  .xp-panel {
+    width:min(560px, 92vw);
+    display:grid;
+    gap:8px;
+    color:#8fe7ff;
+    font-size:clamp(10px,2.1vw,13px);
+    letter-spacing:.13em;
+  }
+  .xp-row { display:flex; justify-content:space-between; gap:18px; }
+  .xp-next { justify-content:center; color:#9ad; }
+  .xp-track {
+    height:16px;
+    border:1px solid rgba(0,240,255,.7);
+    box-shadow:0 0 12px rgba(0,240,255,.35), inset 0 0 10px rgba(0,240,255,.14);
+    background:rgba(0,240,255,.06);
+    overflow:hidden;
+  }
+  #xpFill, #deathXpFill {
+    width:0%;
+    height:100%;
+    background:linear-gradient(90deg, #00f0ff, #ffe600, #ff2df7);
+    box-shadow:0 0 14px rgba(255,230,0,.75);
+  }
+  .button-row {
+    width:min(320px, 92vw);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    align-items:stretch;
+  }
+  @media (max-width:560px) {
+    .menu-stats { grid-template-columns:1fr; }
+  }
   #boostBtn {
     position:fixed; left:calc(18px + env(safe-area-inset-left)); bottom:calc(28px + env(safe-area-inset-bottom));
     z-index:3; width:86px; height:86px; border-radius:50%;
@@ -98,7 +222,10 @@
     pointer-events:none;
   }
   @media (pointer:coarse) { #boostBtn { display:flex; } #stick { display:block; } }
-  @media (prefers-reduced-motion: reduce) { .btn { transition:none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .dead-actions { transition:none; }
+    .death-impact.bump, .death-impact.drop, .death-score.bump, .death-level-text.bump { animation-duration:1ms; }
+  }
   #hitFlash {
     position:fixed; inset:0; pointer-events:none; z-index:5;
     box-shadow:inset 0 0 80px 24px rgba(255,45,85,0);
@@ -134,8 +261,22 @@
 
 <div id="menu" class="overlay">
   <h1>NEON SERPENT</h1>
-  <div class="sub">NEON ARCADE SNAKE</div>
-  <button id="playBtn" class="btn">PLAY</button>
+  <div class="menu-stats">
+    <div class="menu-stat"><span>GAMES PLAYED</span><b id="gamesPlayed">0</b></div>
+    <div class="menu-stat"><span>TOTAL KILLS</span><b id="totalKills">0</b></div>
+    <div class="menu-stat"><span>TOTAL FOOD</span><b id="totalFood">0</b></div>
+    <div class="menu-stat"><span>BEST SCORE</span><b id="menuBestScore">0</b></div>
+    <div class="menu-stat"><span>BEST KILLS</span><b id="menuBestKills">0</b></div>
+  </div>
+  <div class="xp-panel">
+    <div class="xp-row"><span id="playerLevel">LEVEL 1</span><b id="xpProgress">0 / 500 XP</b></div>
+    <div class="xp-track" aria-hidden="true"><div id="xpFill"></div></div>
+    <div class="xp-row xp-next"><span id="nextLevel">+500 XP TO REACH LEVEL 2</span></div>
+  </div>
+  <div class="button-row">
+    <button id="menuResumeBtn" class="btn hidden">RESUME</button>
+    <button id="playBtn" class="btn">NEW GAME</button>
+  </div>
   <div class="hint">
     STEER — mouse · right joystick on touch<br>
     BOOST — hold click / space · boost button on touch (burns length)<br>
@@ -145,15 +286,25 @@
 
 <div id="dead" class="overlay hidden">
   <h1>YOU DIED</h1>
-  <div class="score-line">SCORE <span id="finalScore">0</span>&emsp;KILLS <span id="finalKills">0</span></div>
-  <div class="sub">BEST SCORE <span id="bestDead">0</span>&emsp;BEST KILLS <span id="bestKillsDead">0</span></div>
-  <button id="respawnBtn" class="btn">RESPAWN</button>
+  <div id="deathSequence" class="death-sequence">
+    <div id="deathImpact" class="death-impact hidden"></div>
+    <div id="deathScoreLine" class="death-score hidden">SCORE <span id="finalScore">0</span></div>
+    <div id="deathXpPanel" class="death-xp hidden">
+      <div class="sub">XP PROGRESSION</div>
+      <div class="xp-track" aria-hidden="true"><div id="deathXpFill"></div></div>
+      <div id="deathLevelText" class="death-level-text"></div>
+    </div>
+  </div>
+  <div id="deadActions" class="button-row dead-actions hidden">
+    <button id="respawnBtn" class="btn">NEW GAME</button>
+    <button id="deadMenuBtn" class="btn">MAIN MENU</button>
+  </div>
 </div>
 
 <div id="pause" class="overlay hidden">
   <h1>PAUSED</h1>
   <button id="resumeBtn" class="btn">RESUME</button>
-  <button id="newGameBtn" class="btn">NEW GAME</button>
+  <button id="returnMenuBtn" class="btn">RETURN TO MENU</button>
 </div>
 
 <script type="module" src="./src/main.js"></script>

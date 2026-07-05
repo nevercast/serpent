@@ -16,6 +16,7 @@ let player = null;
 let tGame = 0;
 let playerHitCount = 0;      // bots that died crashing into the player's body
 let playerKillCount = 0;     // cumulative kills for this life (bots killed by the player)
+let playerFoodCount = 0;     // pellets collected by the player this life
 let ambientFoodBudget = 0;
 
 export function getPlayer() { return player; }
@@ -23,6 +24,8 @@ export function getPlayer() { return player; }
 export function popPlayerHits() { const n = playerHitCount; playerHitCount = 0; return n; }
 // Returns the total number of bots killed by the player this life.
 export function getPlayerKillCount() { return playerKillCount; }
+// Returns the number of food pellets collected by the player this life.
+export function getPlayerFoodCount() { return playerFoodCount; }
 
 function safePos() {
   for (let t = 0; t < 24; t++) {
@@ -55,6 +58,7 @@ export function spawnPlayer() {
   const p = safePos();
   player = new Snake(p.x, p.y, 0, false);
   playerKillCount = 0;
+  playerFoodCount = 0;
   player.ghostTimer = GHOST_DURATION;
   snakes.push(player);
   return player;
@@ -138,6 +142,7 @@ export function eat(s, dt) {
         const er = hr + f.r;
         if (d2 < er * er) {
           s.mass += f.v;
+          if (s === player) playerFoodCount++;
           killFood(f);
         } else if (d2 < magR * magR) {
           const d = Math.sqrt(d2) || 1;
@@ -199,6 +204,7 @@ export function resetWorld() {
   tGame = 0;
   playerHitCount = 0;
   playerKillCount = 0;
+  playerFoodCount = 0;
   ambientFoodBudget = 0;
   resetFood();
 }
@@ -220,7 +226,7 @@ export function exportState() {
     playerIdx: player ? snakes.indexOf(player) : -1,
     foods: foods.map(f => ({ x: f.x, y: f.y, v: f.v, r: f.r, ci: f.ci, phase: f.phase })),
     botTimers: botTimers.slice(),
-    tGame, playerHitCount, playerKillCount, ambientFoodBudget,
+    tGame, playerHitCount, playerKillCount, playerFoodCount, ambientFoodBudget,
   };
 }
 
@@ -232,6 +238,7 @@ export function importState(state) {
   tGame = state.tGame;
   playerHitCount = state.playerHitCount;
   playerKillCount = state.playerKillCount ?? 0;
+  playerFoodCount = state.playerFoodCount ?? 0;
   ambientFoodBudget = state.ambientFoodBudget;
   resetFood();
 

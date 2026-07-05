@@ -110,3 +110,19 @@ test('bot dies on contact with the mid-body of another snake', () => {
   assert.ok(botDied);
   assert.equal(b.deathCause, 'other');
 });
+
+test('glancing head overlap resolves as neck hit, not mutual kill', () => {
+  resetWorld();
+  // Deterministic glancing setup captured from a reproducible simulation seed
+  // where the current logic used to mark both snakes dead.
+  const a = add(new Snake(2810.00758621609, 3909.5222437427196, 0, false));
+  a.mass = 90; a.dir = -1.1075012844060366; a.targetAngle = a.dir;
+  const b = add(new Snake(2782.6128772070197, 3873.482878965671, 1, true));
+  b.mass = 90; b.dir = -0.6565701940111406; b.targetAngle = b.dir;
+
+  for (let i = 0; i < 240 && a.alive && b.alive; i++) step();
+
+  assert.ok(!a.alive, 'the trailing snake should die when clipping the other neck');
+  assert.ok(b.alive, 'the leading snake should survive a glancing neck overlap');
+  assert.equal(a.deathCause, 'other');
+});

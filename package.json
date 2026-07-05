@@ -1,0 +1,16 @@
+{
+  "name": "neon-serpent",
+  "version": "1.0.0",
+  "description": "A single-player neon arcade snake game — 2D, large scrolling world, mobile + desktop.",
+  "type": "module",
+  "source": "index.html",
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build --public-url ./",
+    "test": "node --test"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "devDependencies": {
+    "parcel": "^2.12.0"
+  }
+}

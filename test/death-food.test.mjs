@@ -1,4 +1,4 @@
-// Tests that food dropped by a dead serpent visually scales with the dead
+// Tests that food dropped by a dead snake visually scales with the dead
 // snake's body radius, giving a visual indication of how long the trail was.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,7 +43,7 @@ test('death food v and r are consistent via the density formula r = 3·sqrt(v)',
   s.die();
   assert.ok(foods.length > 0, 'death must produce food');
   for (const f of foods) {
-    // The formula r = 3·sqrt(v) must hold within the jitter band [*0.85, *1.1]
+    // The formula r = 3*sqrt(v) must hold within the jitter band [*0.85, *1.1]
     const rFromV = 3 * Math.sqrt(f.v);
     assert.ok(
       f.r >= rFromV * 0.84 && f.r <= rFromV * 1.11,

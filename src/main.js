@@ -13,6 +13,7 @@ const scoreEl = el('score'), bestEl = el('best');
 const finalEl = el('finalScore'), bestDeadEl = el('bestDead');
 const menuEl = el('menu'), deadEl = el('dead');
 const playBtn = el('playBtn'), respawnBtn = el('respawnBtn');
+const hitFlashEl = el('hitFlash');
 
 const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead'
 let lastScore = -1;
@@ -31,9 +32,17 @@ function start() {
   menuEl.classList.add('hidden');
   deadEl.classList.add('hidden');
 }
+function triggerSelfHit() {
+  hitFlashEl.classList.remove('flash');
+  void hitFlashEl.offsetWidth;          // force reflow to restart the animation
+  hitFlashEl.classList.add('flash');
+  if (navigator.vibrate) navigator.vibrate(120);
+}
 function gameOver() {
   G.mode = 'dead';
-  const sc = Math.floor(world.getPlayer().mass);
+  const p = world.getPlayer();
+  if (p && p.deathCause === 'self') triggerSelfHit();
+  const sc = Math.floor(p.mass);
   if (sc > best) best = sc;
   saveBest();
   bestEl.textContent = best;

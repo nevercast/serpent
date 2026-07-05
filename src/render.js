@@ -1,7 +1,7 @@
 // All drawing. Camera follows the player (or a bot on menu/death screens) and
 // the zoom caps the visible world at VIEW_W x VIEW_H, cropping to fit — wide
 // desktop screens never reveal extra map. Culls by per-snake bounding box.
-import { WORLD, GRID, VIEW_W, VIEW_H, cameraGrow } from './constants.js';
+import { WORLD, GRID, VIEW_W, VIEW_H, NEON, cameraGrow } from './constants.js';
 import { TAU } from './math.js';
 import * as view from './view.js';
 import { foods } from './food.js';
@@ -63,7 +63,7 @@ function drawMinimap(ctx) {
   for (const s of snakes) {
     if (!s.alive) continue;
     const me = s === player;
-    ctx.fillStyle = me ? '#00f0ff' : 'rgba(255,255,255,0.45)';
+    ctx.fillStyle = me ? NEON[s.ci] : 'rgba(255,255,255,0.45)';
     const dz = (me ? 3.4 : 2.2) * view.uiPx;
     ctx.fillRect(x + s.x * k - dz / 2, y + s.y * k - dz / 2, dz, dz);
   }

@@ -8,6 +8,13 @@ import {
 } from './constants.js';
 import { spawnFood } from './food.js';
 
+function deathDropRate(mass) {
+  if (mass <= 100) return 0.95;
+  if (mass <= 500) return 0.95 - ((mass - 100) / 400) * 0.05;
+  if (mass <= 1000) return 0.9 - ((mass - 500) / 500) * 0.15;
+  return 0.75;
+}
+
 export class Snake {
   constructor(x, y, ci, bot) {
     this.x = x; this.y = y;
@@ -118,15 +125,11 @@ export class Snake {
     const bodyR = this.radius;
     // Death-food visual size scales with the dead snake's body radius: approximately
     // half the body radius, clamped to [ambient-food-min (3), MAX_RADIUS/2].
-    // The quantity v is derived from the target radius via the density formula
-    // r = 3*sqrt(v), i.e. v = (r/3)^2, so that v and r stay mutually consistent
-    // rather than using a raw radius value directly. The constant 3 here is the
-    // ambient food minimum radius (minFoodR); if minFoodR ever changes, this
-    // formula must be updated to match.
     const minFoodR = 3;                      // ambient food minimum radius
     const maxFoodR = MAX_RADIUS / 2;         // half max snake body radius
     const foodR = clamp(bodyR / 2, minFoodR, maxFoodR);
-    const foodV = (foodR / 3) ** 2;          // density formula: v = (r/3)^2
+    const dropCount = Math.ceil(this.segCount / 2);
+    const foodV = (this.mass * deathDropRate(this.mass)) / dropCount;
     for (let i = 0; i < this.segCount; i += 2) {
       const g = this.segs[i];
       spawnFood(g.x + rand(-7, 7), g.y + rand(-7, 7), foodV, rand(foodR * 0.85, foodR * 1.1), this.ci);

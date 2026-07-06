@@ -15,6 +15,9 @@ test('main menu places Resume before New Game', () => {
   assert.equal(html.includes('id="bestDead"'), false, 'best score is reserved for profile, not the death screen');
   assert.equal(html.includes('id="bestKillsDead"'), false, 'best kills is reserved for profile, not the death screen');
   assert.ok(html.indexOf('id="profileBtn"') > html.indexOf('id="playBtn"'), 'Profile is a secondary menu action');
+  assert.match(html, /id="hud" class="hidden"/, 'HUD defaults hidden before JavaScript runs');
+  assert.match(html, /id="boostBtn"[^>]*class="hidden"/, 'touch boost defaults hidden before JavaScript runs');
+  assert.match(html, /id="stick"[^>]*class="hidden"/, 'touch joystick defaults hidden before JavaScript runs');
 });
 
 test('browser entry boots and handles all input paths without throwing', async () => {

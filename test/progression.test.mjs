@@ -31,6 +31,13 @@ test('progressForXp reports current and next level progress', () => {
   });
 });
 
+test('progression helpers reject non-finite values', () => {
+  assert.equal(levelForXp(Infinity), 1);
+  assert.equal(levelForXp(NaN), 1);
+  assert.deepEqual(progressForXp(Infinity), progressForXp(0));
+  assert.equal(tallyDurationForAmount(Infinity), tallyDurationForAmount(0));
+});
+
 test('tallyDurationForAmount keeps small results readable and scales large totals', () => {
   assert.equal(tallyDurationForAmount(100), 1.5);
   assert.equal(tallyDurationForAmount(500), 1.5);

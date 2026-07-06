@@ -17,6 +17,7 @@ test('main menu places Resume before New Game', () => {
 
 test('browser entry boots and handles all input paths without throwing', async () => {
   const h = installStubs();
+  h.win.localStorage.setItem(LS_XP_KEY, '1e309');
   await import('../src/main.js');       // boots into menu + starts the loop
 
   h.advance(60, 16.7);                  // idle menu frames
@@ -117,12 +118,15 @@ test('browser entry boots and handles all input paths without throwing', async (
   const q = world.getPlayer();
   const killsAtDeath = world.getPlayerKillCount();
   const foodAtDeath = world.getPlayerFoodCount();
+  const gamesPlayedBeforeDeath = Number(h.win.localStorage.getItem(LS_GAMES_PLAYED_KEY) || 0);
+  const storedXpBeforeDeath = Number(h.win.localStorage.getItem(LS_XP_KEY) || 0);
+  const xpBeforeDeath = Number.isFinite(storedXpBeforeDeath) ? storedXpBeforeDeath : 0;
   q.mass = START_MASS + 1200;
   q.alive = false;
   h.advance(1, 16.7);
   assert.equal(h.els.dead.classList.contains('hidden'), false, 'dead overlay visible after player death');
-  assert.equal(h.win.localStorage.getItem(LS_GAMES_PLAYED_KEY), '1', 'game result is saved before death animation completes');
-  assert.equal(h.win.localStorage.getItem(LS_XP_KEY), '1200', 'XP is saved before death animation completes');
+  assert.equal(Number(h.win.localStorage.getItem(LS_GAMES_PLAYED_KEY)), gamesPlayedBeforeDeath + 1, 'game result is saved before death animation completes');
+  assert.equal(Number(h.win.localStorage.getItem(LS_XP_KEY)), xpBeforeDeath + 1200, 'XP is saved before death animation completes');
   assert.equal(h.els.deadActions.classList.contains('hidden'), true, 'death actions hidden while results animate');
   assert.equal(h.els.deathImpact.textContent, `+${killsAtDeath} KILLS`, 'kills impact appears first');
   h.advance(84, 16.7);

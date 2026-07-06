@@ -44,11 +44,18 @@ const DEATH_LEVEL_UP_HOLD = 0.72;
 const DEATH_FINAL_DELAY = 0.7;
 
 function readStoredInt(key) {
-  try { return Math.max(0, Math.floor(+localStorage.getItem(key) || 0)); } catch (e) { return 0; }
+  try {
+    const value = Number(localStorage.getItem(key) || 0);
+    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  } catch (e) {
+    return 0;
+  }
 }
 
 function saveStoredInt(key, value) {
-  try { localStorage.setItem(key, String(Math.max(0, Math.floor(value)))); } catch (e) {}
+  try {
+    localStorage.setItem(key, String(Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0));
+  } catch (e) {}
 }
 
 let best = readStoredInt(LS_KEY);

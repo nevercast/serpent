@@ -11,14 +11,14 @@ export function xpForLevel(level) {
 }
 
 export function levelForXp(xp) {
-  const total = Math.max(0, Math.floor(xp));
+  const total = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
   let level = 1;
   while (total >= xpForLevel(level + 1)) level++;
   return level;
 }
 
 export function progressForXp(xp) {
-  const total = Math.max(0, Math.floor(xp));
+  const total = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
   const level = levelForXp(total);
   const currentLevelXp = xpForLevel(level);
   const nextLevelXp = xpForLevel(level + 1);
@@ -36,7 +36,7 @@ export function progressForXp(xp) {
 }
 
 export function tallyDurationForAmount(amount) {
-  const n = Math.max(0, Math.floor(amount));
+  const n = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
   if (n <= TALLY_BASE_AMOUNT) return TALLY_MIN_DURATION;
   return TALLY_MIN_DURATION + TALLY_SCALE * Math.pow((n - TALLY_BASE_AMOUNT) / TALLY_BASE_AMOUNT, TALLY_SCALE_POWER);
 }

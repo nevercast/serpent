@@ -552,7 +552,7 @@ function loop(t) {
 
   if (G.mode === 'dead') updateDeathSequence(t / 1000);
 
-  render(t / 1000);
+  render(t / 1000, { showUi: G.mode === 'play' || G.mode === 'paused' });
 
   if (G.mode === 'play') {
     const q = world.getPlayer();

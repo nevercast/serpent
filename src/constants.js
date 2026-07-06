@@ -16,7 +16,7 @@ export const MAX_SEGS = 520;          // max body segments (length cap)
 export const GHOST_DURATION = 3;          // seconds of collision immunity after spawning
 
 export const BOT_COUNT = 30;
-export const TARGET_FOOD = 1450, MAX_FOOD = 3000;
+export const TARGET_FOOD = 2000, MAX_FOOD = 3000;
 export const AMBIENT_FOOD_RESPAWNS_PER_SEC = 120;
 
 export const BOT_NAV_MODES = Object.freeze({

@@ -3,6 +3,11 @@ const TALLY_MIN_DURATION = 1.5;
 const TALLY_BASE_AMOUNT = 1000;
 const TALLY_SCALE_POWER = Math.log(3.5 / 1.5) / Math.log(9 / 2);
 const TALLY_SCALE = 1.5 / Math.pow(2, TALLY_SCALE_POWER);
+export const MAX_PROGRESS_VALUE = 1_000_000_000;
+
+export function normalizeProgressValue(value) {
+  return Number.isFinite(value) ? Math.max(0, Math.min(MAX_PROGRESS_VALUE, Math.floor(value))) : 0;
+}
 
 export function xpForLevel(level) {
   const n = Math.max(1, Math.floor(level));
@@ -11,14 +16,14 @@ export function xpForLevel(level) {
 }
 
 export function levelForXp(xp) {
-  const total = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
+  const total = normalizeProgressValue(xp);
   let level = 1;
   while (total >= xpForLevel(level + 1)) level++;
   return level;
 }
 
 export function progressForXp(xp) {
-  const total = Number.isFinite(xp) ? Math.max(0, Math.floor(xp)) : 0;
+  const total = normalizeProgressValue(xp);
   const level = levelForXp(total);
   const currentLevelXp = xpForLevel(level);
   const nextLevelXp = xpForLevel(level + 1);
@@ -36,7 +41,7 @@ export function progressForXp(xp) {
 }
 
 export function tallyDurationForAmount(amount) {
-  const n = Number.isFinite(amount) ? Math.max(0, Math.floor(amount)) : 0;
+  const n = normalizeProgressValue(amount);
   if (n <= TALLY_BASE_AMOUNT) return TALLY_MIN_DURATION;
   return TALLY_MIN_DURATION + TALLY_SCALE * Math.pow((n - TALLY_BASE_AMOUNT) / TALLY_BASE_AMOUNT, TALLY_SCALE_POWER);
 }

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { levelForXp, progressForXp, tallyDurationForAmount, xpForLevel } from '../src/progression.js';
+import {
+  MAX_PROGRESS_VALUE, levelForXp, normalizeProgressValue,
+  progressForXp, tallyDurationForAmount, xpForLevel
+} from '../src/progression.js';
 
 test('fixed early level thresholds match the progression design', () => {
   assert.equal(xpForLevel(1), 0);
@@ -36,6 +39,13 @@ test('progression helpers reject non-finite values', () => {
   assert.equal(levelForXp(NaN), 1);
   assert.deepEqual(progressForXp(Infinity), progressForXp(0));
   assert.equal(tallyDurationForAmount(Infinity), tallyDurationForAmount(0));
+});
+
+test('progression helpers clamp finite values to the maximum progression value', () => {
+  assert.equal(normalizeProgressValue(-1), 0);
+  assert.equal(normalizeProgressValue(MAX_PROGRESS_VALUE + 1), MAX_PROGRESS_VALUE);
+  assert.equal(progressForXp(MAX_PROGRESS_VALUE + 1).totalXp, MAX_PROGRESS_VALUE);
+  assert.equal(tallyDurationForAmount(MAX_PROGRESS_VALUE + 1), tallyDurationForAmount(MAX_PROGRESS_VALUE));
 });
 
 test('tallyDurationForAmount keeps small results readable and scales large totals', () => {

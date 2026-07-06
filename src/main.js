@@ -10,7 +10,7 @@ import * as input from './input.js';
 import * as view from './view.js';
 import { render, snapCamera } from './render.js';
 import { popPlayerHits, getPlayerKillCount, getPlayerFoodCount } from './world.js';
-import { progressForXp, tallyDurationForAmount } from './progression.js';
+import { normalizeProgressValue, progressForXp, tallyDurationForAmount } from './progression.js';
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
@@ -46,7 +46,7 @@ const DEATH_FINAL_DELAY = 0.7;
 function readStoredInt(key) {
   try {
     const value = Number(localStorage.getItem(key) || 0);
-    return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+    return normalizeProgressValue(value);
   } catch (e) {
     return 0;
   }
@@ -54,7 +54,7 @@ function readStoredInt(key) {
 
 function saveStoredInt(key, value) {
   try {
-    localStorage.setItem(key, String(Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0));
+    localStorage.setItem(key, String(normalizeProgressValue(value)));
   } catch (e) {}
 }
 
@@ -93,7 +93,7 @@ function clearPauseState() {
   try { localStorage.removeItem(LS_PAUSE_KEY); } catch (e) {}
 }
 
-function scoreForMass(mass) { return Math.max(0, Math.floor(mass - START_MASS)); }
+function scoreForMass(mass) { return normalizeProgressValue(mass - START_MASS); }
 
 function updateBestText() {
   bestEl.textContent = best;
@@ -345,10 +345,10 @@ function gameOver(now = performance.now() / 1000) {
   const food = getPlayerFoodCount();
   const previousXp = xp;
   const previousLevel = progressForXp(previousXp).level;
-  gamesPlayed++;
-  totalKills += kills;
-  totalFood += food;
-  xp += sc;
+  gamesPlayed = normalizeProgressValue(gamesPlayed + 1);
+  totalKills = normalizeProgressValue(totalKills + kills);
+  totalFood = normalizeProgressValue(totalFood + food);
+  xp = normalizeProgressValue(xp + sc);
   const finalLevel = progressForXp(xp).level;
   if (sc > best) best = sc;
   saveBest();

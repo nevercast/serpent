@@ -8,7 +8,7 @@ import {
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
-import { botThink, botAvoidHazards, botSandbagForScore, shouldRunBotAvoidanceEveryTick } from './ai.js';
+import { botThink, botAvoidHazards, botModesForMass, botSandbagForScore, shouldRunBotAvoidanceEveryTick } from './ai.js';
 
 export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
@@ -166,7 +166,6 @@ export function update(dt, options = {}) {
     avoidanceMode: options.avoidanceMode,
     sandbag,
   };
-  const avoidEveryTick = shouldRunBotAvoidanceEveryTick(options.avoidanceMode);
 
   if (foods.length < TARGET_FOOD) {
     ambientFoodBudget += AMBIENT_FOOD_RESPAWNS_PER_SEC * dt;
@@ -185,7 +184,12 @@ export function update(dt, options = {}) {
     if (s.bot) {
       s.think -= dt;
       if (s.think <= 0) botThink(s, snakes, botOptions);
-      else if (avoidEveryTick && Math.random() >= sandbag * 0.55) botAvoidHazards(s, snakes, options.avoidanceMode);
+      else {
+        const { avoidanceMode } = botModesForMass(s.mass, botOptions);
+        if (shouldRunBotAvoidanceEveryTick(avoidanceMode) && Math.random() >= sandbag * 0.55) {
+          botAvoidHazards(s, snakes, avoidanceMode);
+        }
+      }
     }
     s.update(dt);
   }

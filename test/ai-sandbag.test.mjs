@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { botSandbagForScore, botThink } from '../src/ai.js';
-import { BOT_SANDBAG_MAX, BOT_SANDBAG_SCORE_CAP } from '../src/constants.js';
+import { botModesForMass, botSandbagForScore, botThink } from '../src/ai.js';
+import {
+  BOT_AVOIDANCE_MODES, BOT_DUMB_AI_MASS, BOT_NAV_MODES,
+  BOT_SANDBAG_MAX, BOT_SANDBAG_SCORE_CAP
+} from '../src/constants.js';
 import { Snake } from '../src/snake.js';
 import { resetWorld } from '../src/world.js';
 
@@ -29,4 +32,24 @@ test('sandbagged bot thinking reacts more slowly', () => {
     Math.random = oldRandom;
     resetWorld();
   }
+});
+
+test('small bots use simpler AI unless modes are explicit', () => {
+  assert.deepEqual(botModesForMass(BOT_DUMB_AI_MASS - 1), {
+    navMode: BOT_NAV_MODES.STANDARD,
+    avoidanceMode: BOT_AVOIDANCE_MODES.PREDICTIVE,
+  });
+
+  assert.deepEqual(botModesForMass(BOT_DUMB_AI_MASS), {
+    navMode: BOT_NAV_MODES.SELF_AWARE,
+    avoidanceMode: BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK,
+  });
+
+  assert.deepEqual(botModesForMass(10, {
+    navMode: BOT_NAV_MODES.SELF_AWARE,
+    avoidanceMode: BOT_AVOIDANCE_MODES.PREDICTIVE,
+  }), {
+    navMode: BOT_NAV_MODES.SELF_AWARE,
+    avoidanceMode: BOT_AVOIDANCE_MODES.PREDICTIVE,
+  });
 });

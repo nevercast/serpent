@@ -30,6 +30,7 @@ export const BOT_AVOIDANCE_MODES = Object.freeze({
 });
 export const BOT_NAV_MODE = BOT_NAV_MODES.SELF_AWARE;
 export const BOT_AVOIDANCE_MODE = BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK;
+export const BOT_DUMB_AI_MASS = 100;         // bots below this mass use simpler nav/avoidance
 export const BOT_SANDBAG_MAX = 0.45;         // max bot handicap at score 0
 export const BOT_SANDBAG_SCORE_CAP = 3000;   // score where the handicap reaches 0
 

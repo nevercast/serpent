@@ -44,6 +44,7 @@ export const LS_TOTAL_KILLS_KEY = 'neon-serpent-total-kills';
 export const LS_TOTAL_FOOD_KEY = 'neon-serpent-total-food';
 export const LS_XP_KEY = 'neon-serpent-xp';
 export const LS_CREDITED_XP_BONUS_KEY = 'neon-serpent-credited-xp-bonus';
+export const LS_ACHIEVEMENTS_KEY = 'neon-serpent-achievements';
 
 export function cameraGrow(radius) {
   return 1 + Math.min(CAMERA_GROW_MAX, Math.max(0, radius - CAMERA_GROW_START_R) * CAMERA_GROW_RATE);

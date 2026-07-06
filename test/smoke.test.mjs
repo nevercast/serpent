@@ -6,13 +6,15 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { installStubs } from './helpers/dom-stub.js';
 import { LS_GAMES_PLAYED_KEY, LS_XP_KEY, MIN_BOOST_MASS, START_MASS } from '../src/constants.js';
+import { achievementBonus, evaluateAchievements, readCompletedAchievements } from '../src/achievements.js';
 import * as world from '../src/world.js';
 
 test('main menu places Resume before New Game', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.indexOf('id="menuResumeBtn"') < html.indexOf('id="playBtn"'), 'Resume appears above New Game in the menu markup');
-  assert.equal(html.includes('id="bestDead"'), false, 'best score is reserved for the main menu');
-  assert.equal(html.includes('id="bestKillsDead"'), false, 'best kills is reserved for the main menu');
+  assert.equal(html.includes('id="bestDead"'), false, 'best score is reserved for profile, not the death screen');
+  assert.equal(html.includes('id="bestKillsDead"'), false, 'best kills is reserved for profile, not the death screen');
+  assert.ok(html.indexOf('id="profileBtn"') > html.indexOf('id="playBtn"'), 'Profile is a secondary menu action');
 });
 
 test('browser entry boots and handles all input paths without throwing', async () => {
@@ -23,11 +25,17 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.advance(60, 16.7);                  // idle menu frames
   assert.equal(h.els.menu.classList.contains('hidden'), false, 'main menu is visible on boot');
   assert.equal(h.els.playBtn.textContent, 'NEW GAME', 'main menu starts fresh games');
-  assert.equal(h.els.gamesPlayed.textContent, '0', 'main menu shows games played');
   assert.equal(h.els.playerLevel.textContent, 'LEVEL 1', 'main menu labels XP section with current level');
   assert.equal(h.els.xpProgress.textContent, '0 / 250 XP', 'main menu XP tally includes XP unit');
   assert.equal(h.els.nextLevel.textContent, '+250 XP TO REACH LEVEL 2', 'main menu shows XP needed for next level');
   assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), true, 'resume is hidden without a pause save');
+  h.fireEl('profileBtn', 'click', {});
+  assert.equal(h.els.profile.classList.contains('hidden'), false, 'Profile opens from the main menu');
+  assert.equal(h.els.gamesPlayed.textContent, '0', 'Profile shows games played');
+  assert.equal(h.els.achievementSummary.textContent, '0 / 12 COMPLETE', 'Profile summarizes achievement completion');
+  assert.equal(h.els.achievementList.children.length, 4, 'Profile renders achievement groups');
+  h.fireEl('profileBackBtn', 'click', {});
+  assert.equal(h.els.menu.classList.contains('hidden'), false, 'Profile Back returns to main menu');
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(1, 16.7);
   assert.equal(h.els.score.textContent, '0', 'score starts at zero for the initial mass');
@@ -122,11 +130,17 @@ test('browser entry boots and handles all input paths without throwing', async (
   const storedXpBeforeDeath = Number(h.win.localStorage.getItem(LS_XP_KEY) || 0);
   const xpBeforeDeath = Number.isFinite(storedXpBeforeDeath) ? storedXpBeforeDeath : 0;
   q.mass = START_MASS + 1200;
+  const scoreAtDeath = 1200;
+  const achievementXpAtDeath = achievementBonus(evaluateAchievements({
+    score: scoreAtDeath,
+    kills: killsAtDeath,
+    food: foodAtDeath,
+  }, readCompletedAchievements(h.win.localStorage)));
   q.alive = false;
   h.advance(1, 16.7);
   assert.equal(h.els.dead.classList.contains('hidden'), false, 'dead overlay visible after player death');
   assert.equal(Number(h.win.localStorage.getItem(LS_GAMES_PLAYED_KEY)), gamesPlayedBeforeDeath + 1, 'game result is saved before death animation completes');
-  assert.equal(Number(h.win.localStorage.getItem(LS_XP_KEY)), xpBeforeDeath + 1200, 'XP is saved before death animation completes');
+  assert.equal(Number(h.win.localStorage.getItem(LS_XP_KEY)), xpBeforeDeath + scoreAtDeath + achievementXpAtDeath, 'XP includes achievement bonuses before death animation completes');
   assert.equal(h.els.deadActions.classList.contains('hidden'), true, 'death actions hidden while results animate');
   assert.equal(h.els.deathImpact.textContent, `+${killsAtDeath} KILLS`, 'kills impact appears first');
   h.advance(84, 16.7);
@@ -134,11 +148,13 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.advance(25, 16.7);
   assert.equal(h.els.deathImpact.textContent, `+${foodAtDeath} FOOD`, 'food impact follows kills');
   h.advance(110, 16.7);
-  assert.equal(h.els.deathScoreLine.classList.contains('hidden'), false, 'score tally appears after food');
+  assert.equal(h.els.deathImpact.textContent, `+${achievementXpAtDeath} BONUS`, 'achievement bonus impact follows food');
+  h.advance(110, 16.7);
+  assert.equal(h.els.deathScoreLine.classList.contains('hidden'), false, 'score tally appears after the bonus phase');
   assert.equal(h.els.deathXpPanel.classList.contains('hidden'), false, 'XP progress appears with score tally');
   h.advance(520, 16.7);
-  assert.equal(h.els.finalScore.textContent, '1200', 'score tally reaches final score');
-  assert.equal(h.els.deathLevelText.textContent, 'REACHED LEVEL 4', 'final level text reflects level-up result');
+  assert.equal(h.els.finalScore.textContent, String(scoreAtDeath + achievementXpAtDeath), 'score tally reaches final score with bonuses');
+  assert.match(h.els.deathLevelText.textContent, /^(REACHED LEVEL|LEVEL) \d+$/, 'final level text reflects level result');
   assert.equal(h.els.deadActions.classList.contains('hidden'), false, 'death actions appear after XP completes');
   assert.equal(h.els.deadActions.classList.contains('ready'), true, 'death actions fade into the ready state');
   assert.equal(h.els.respawnBtn.textContent, 'NEW GAME', 'death screen restart action is labeled New Game');

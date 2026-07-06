@@ -55,6 +55,26 @@
   .btn:hover { transform:scale(1.05); box-shadow:0 0 26px rgba(0,240,255,.9), inset 0 0 20px rgba(0,240,255,.4); }
   .btn:active { transform:scale(.97); }
   .btn:focus-visible { outline:2px solid #fff; outline-offset:4px; }
+  .btn-secondary {
+    color:#8fe7ff;
+    border-color:rgba(143,231,255,.52);
+    box-shadow:0 0 10px rgba(0,240,255,.24), inset 0 0 10px rgba(0,240,255,.1);
+    text-shadow:0 0 7px rgba(0,240,255,.58);
+  }
+  .btn-link {
+    padding:10px 20px;
+    font-size:clamp(12px,2.3vw,15px);
+    letter-spacing:.18em;
+  }
+  .btn:disabled {
+    cursor:default;
+    opacity:.42;
+    transform:none;
+  }
+  .btn:disabled:hover {
+    transform:none;
+    box-shadow:0 0 10px rgba(0,240,255,.24), inset 0 0 10px rgba(0,240,255,.1);
+  }
   #dead {
     gap:clamp(24px, 4.5vh, 42px);
     padding-block:calc(28px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-bottom));
@@ -166,7 +186,7 @@
     background:rgba(0,240,255,.06);
     overflow:hidden;
   }
-  #xpFill, #deathXpFill {
+  #xpFill, #profileXpFill, #deathXpFill {
     width:0%;
     height:100%;
     background:linear-gradient(90deg, #00f0ff, #ffe600, #ff2df7);
@@ -179,8 +199,103 @@
     gap:14px;
     align-items:stretch;
   }
+  .menu-links {
+    width:min(360px, 92vw);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .profile-overlay {
+    justify-content:flex-start;
+    overflow:auto;
+    padding-block:calc(28px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-bottom));
+  }
+  .profile-shell {
+    width:min(760px, 94vw);
+    display:grid;
+    gap:22px;
+    text-align:left;
+  }
+  .profile-shell h1 { text-align:center; }
+  .profile-section {
+    display:grid;
+    gap:12px;
+  }
+  .profile-heading {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:18px;
+    color:#8fe7ff;
+    font-size:clamp(11px,2.2vw,14px);
+    letter-spacing:.2em;
+  }
+  .profile-heading b {
+    color:#fff;
+    text-shadow:0 0 10px rgba(0,240,255,.8);
+  }
+  .achievement-list {
+    display:grid;
+    gap:12px;
+  }
+  .achievement {
+    display:grid;
+    gap:8px;
+    padding:12px 0;
+    border-top:1px solid rgba(0,240,255,.16);
+  }
+  .achievement-title {
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    color:#fff;
+    font-weight:800;
+    letter-spacing:.16em;
+    font-size:clamp(12px,2.4vw,16px);
+    text-shadow:0 0 10px rgba(0,240,255,.72);
+  }
+  .achievement-desc {
+    color:#9ad;
+    font-size:clamp(10px,2.1vw,13px);
+    letter-spacing:.08em;
+    line-height:1.55;
+  }
+  .achievement-tiers {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:8px;
+  }
+  .tier-pill {
+    min-height:28px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid rgba(143,231,255,.42);
+    background:rgba(0,240,255,.05);
+    color:rgba(207,239,255,.52);
+    font-size:clamp(10px,2vw,12px);
+    font-weight:800;
+    letter-spacing:.12em;
+    box-shadow:inset 0 0 10px rgba(0,240,255,.08);
+  }
+  .tier-pill.complete {
+    color:#03030a;
+    border-color:rgba(255,230,0,.9);
+    background:linear-gradient(90deg, #00f0ff, #ffe600);
+    box-shadow:0 0 14px rgba(255,230,0,.58), inset 0 0 10px rgba(255,255,255,.28);
+  }
+  .tier-pill.hidden-tier {
+    color:#8fe7ff;
+    border-color:rgba(143,231,255,.28);
+  }
+  .profile-actions {
+    display:flex;
+    justify-content:center;
+  }
   @media (max-width:560px) {
     .menu-stats { grid-template-columns:1fr; }
+    .menu-links { grid-template-columns:1fr; }
+    .achievement-tiers { gap:6px; }
   }
   #boostBtn {
     position:fixed; left:calc(18px + env(safe-area-inset-left)); bottom:calc(28px + env(safe-area-inset-bottom));
@@ -261,13 +376,6 @@
 
 <div id="menu" class="overlay">
   <h1>NEON SERPENT</h1>
-  <div class="menu-stats">
-    <div class="menu-stat"><span>GAMES PLAYED</span><b id="gamesPlayed">0</b></div>
-    <div class="menu-stat"><span>TOTAL KILLS</span><b id="totalKills">0</b></div>
-    <div class="menu-stat"><span>TOTAL FOOD</span><b id="totalFood">0</b></div>
-    <div class="menu-stat"><span>BEST SCORE</span><b id="menuBestScore">0</b></div>
-    <div class="menu-stat"><span>BEST KILLS</span><b id="menuBestKills">0</b></div>
-  </div>
   <div class="xp-panel">
     <div class="xp-row"><span id="playerLevel">LEVEL 1</span><b id="xpProgress">0 / 500 XP</b></div>
     <div class="xp-track" aria-hidden="true"><div id="xpFill"></div></div>
@@ -277,10 +385,45 @@
     <button id="menuResumeBtn" class="btn hidden">RESUME</button>
     <button id="playBtn" class="btn">NEW GAME</button>
   </div>
+  <div class="menu-links">
+    <button id="profileBtn" class="btn btn-secondary btn-link">PROFILE</button>
+    <button id="settingsBtn" class="btn btn-secondary btn-link" disabled>SETTINGS</button>
+  </div>
   <div class="hint">
     STEER — mouse · right joystick on touch<br>
     BOOST — hold click / space · boost button on touch (burns length)<br>
     Eat the glowing pellets. Don't hit anything — including yourself.
+  </div>
+</div>
+
+<div id="profile" class="overlay profile-overlay hidden">
+  <div class="profile-shell">
+    <h1>PROFILE</h1>
+    <div class="xp-panel">
+      <div class="xp-row"><span id="profilePlayerLevel">LEVEL 1</span><b id="profileXpProgress">0 / 500 XP</b></div>
+      <div class="xp-track" aria-hidden="true"><div id="profileXpFill"></div></div>
+      <div class="xp-row xp-next"><span id="profileNextLevel">+500 XP TO REACH LEVEL 2</span></div>
+    </div>
+    <section class="profile-section">
+      <div class="profile-heading"><span>LIFETIME STATS</span></div>
+      <div class="menu-stats">
+        <div class="menu-stat"><span>GAMES PLAYED</span><b id="gamesPlayed">0</b></div>
+        <div class="menu-stat"><span>TOTAL KILLS</span><b id="totalKills">0</b></div>
+        <div class="menu-stat"><span>TOTAL FOOD</span><b id="totalFood">0</b></div>
+        <div class="menu-stat"><span>BEST SCORE</span><b id="menuBestScore">0</b></div>
+        <div class="menu-stat"><span>BEST KILLS</span><b id="menuBestKills">0</b></div>
+      </div>
+    </section>
+    <section class="profile-section">
+      <div class="profile-heading">
+        <span>ACHIEVEMENTS</span>
+        <b id="achievementSummary">0 / 0 COMPLETE</b>
+      </div>
+      <div id="achievementList" class="achievement-list"></div>
+    </section>
+    <div class="profile-actions">
+      <button id="profileBackBtn" class="btn">BACK</button>
+    </div>
   </div>
 </div>
 

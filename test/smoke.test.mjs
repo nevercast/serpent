@@ -15,6 +15,9 @@ test('main menu places Resume before New Game', () => {
   assert.equal(html.includes('id="bestDead"'), false, 'best score is reserved for profile, not the death screen');
   assert.equal(html.includes('id="bestKillsDead"'), false, 'best kills is reserved for profile, not the death screen');
   assert.ok(html.indexOf('id="profileBtn"') > html.indexOf('id="playBtn"'), 'Profile is a secondary menu action');
+  assert.match(html, /user-scalable=no/, 'viewport disables user scaling for game input');
+  assert.match(html, /#game \{[^}]*touch-action:none;/, 'game canvas disables browser touch gestures');
+  assert.match(html, /\.overlay \{[^}]*touch-action:manipulation;/, 'overlay controls disable double-tap zoom declaratively');
   assert.match(html, /id="hud" class="hidden"/, 'HUD defaults hidden before JavaScript runs');
   assert.match(html, /id="boostBtn"[^>]*class="hidden"/, 'touch boost defaults hidden before JavaScript runs');
   assert.match(html, /id="stick"[^>]*class="hidden"/, 'touch joystick defaults hidden before JavaScript runs');
@@ -35,6 +38,10 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.xpProgress.textContent, '0 / 250 XP', 'main menu XP tally includes XP unit');
   assert.equal(h.els.nextLevel.textContent, '+250 XP TO REACH LEVEL 2', 'main menu shows XP needed for next level');
   assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), true, 'resume is hidden without a pause save');
+  let doubleTapPrevented = false;
+  h.fireDoc('touchend', { preventDefault() {} });
+  h.fireDoc('touchend', { preventDefault() { doubleTapPrevented = true; } });
+  assert.equal(doubleTapPrevented, true, 'rapid double taps are prevented from zooming the page');
   h.fireEl('profileBtn', 'click', {});
   assert.equal(h.els.profile.classList.contains('hidden'), false, 'Profile opens from the main menu');
   assert.equal(h.els.boostBtn.classList.contains('hidden'), true, 'touch boost is hidden in Profile preview');

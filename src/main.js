@@ -102,6 +102,16 @@ function saveLifetimeStats() {
 // upgrades the quota bucket from "best effort" to "persistent".
 try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
 
+function preventPageZoomGestures() {
+  let lastTouchEndAt = 0;
+  document.addEventListener('touchend', e => {
+    const now = performance.now();
+    if (now - lastTouchEndAt < 350) e.preventDefault();
+    lastTouchEndAt = now;
+  }, { passive: false });
+  window.addEventListener('gesturestart', e => e.preventDefault());
+}
+
 function refreshSavedPauseState() {
   savedPauseState = null;
   try {
@@ -599,6 +609,7 @@ window.addEventListener('beforeunload', () => { saveBest(); saveBestKills(); sav
 
 view.initView();
 input.initInput();
+preventPageZoomGestures();
 refreshSavedPauseState();
 showMenu();
 requestAnimationFrame(loop);

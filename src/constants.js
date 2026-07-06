@@ -30,6 +30,8 @@ export const BOT_AVOIDANCE_MODES = Object.freeze({
 });
 export const BOT_NAV_MODE = BOT_NAV_MODES.SELF_AWARE;
 export const BOT_AVOIDANCE_MODE = BOT_AVOIDANCE_MODES.PREDICTIVE_EVERY_TICK;
+export const BOT_SANDBAG_MAX = 0.45;         // max bot handicap at score 0
+export const BOT_SANDBAG_SCORE_CAP = 3000;   // score where the handicap reaches 0
 
 export const CELL = 120;              // spatial-hash cell size, px
 export const CELLS = Math.ceil(WORLD / CELL);

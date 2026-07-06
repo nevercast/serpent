@@ -566,7 +566,8 @@ function loop(t) {
   if (G.mode !== 'paused') {
     acc += dt;
     let steps = 0;
-    while (acc >= STEP && steps < 5) { world.update(STEP); acc -= STEP; steps++; }
+    const playerScore = G.mode === 'play' && p && p.alive ? scoreForMass(p.mass) : null;
+    while (acc >= STEP && steps < 5) { world.update(STEP, { playerScore }); acc -= STEP; steps++; }
     if (steps === 5) acc = 0;          // don't spiral on very slow frames
   }
 

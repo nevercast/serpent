@@ -18,13 +18,13 @@ function storageStub() {
 test('achievement evaluation unlocks every newly crossed tier once', () => {
   const first = evaluateAchievements({ score: 2600, kills: 0, food: 220 }, []);
   assert.deepEqual(first.map(item => item.tierId), [
-    'growth_spurt_1000',
-    'growth_spurt_2500',
+    'stretch_1000',
+    'stretch_2500',
     'forager_100',
     'forager_200',
-    'pacifist_growth_500',
-    'pacifist_growth_1000',
-    'pacifist_growth_2500',
+    'pacifist_500',
+    'pacifist_1000',
+    'pacifist_2500',
   ]);
   assert.equal(achievementBonus(first), 2800);
 
@@ -36,8 +36,8 @@ test('achievement evaluation unlocks every newly crossed tier once', () => {
 test('pacifist tiers require a zero-kill game', () => {
   const unlocked = evaluateAchievements({ score: 2600, kills: 1, food: 0 }, []);
   assert.deepEqual(unlocked.map(item => item.tierId), [
-    'growth_spurt_1000',
-    'growth_spurt_2500',
+    'stretch_1000',
+    'stretch_2500',
   ]);
 });
 

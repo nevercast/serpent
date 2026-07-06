@@ -14,14 +14,14 @@ export const TIER_BONUSES = Object.freeze({
 
 export const achievements = Object.freeze([
   {
-    id: 'growth_spurt',
-    title: 'GROWTH SPURT',
+    id: 'stretch',
+    title: 'STRETCH',
     description: 'Push your score beyond familiar limits.',
     hidden: false,
     tiers: [
-      { id: 'growth_spurt_1000', tier: ACHIEVEMENT_TIERS.BRONZE, threshold: 1000, metric: 'score' },
-      { id: 'growth_spurt_2500', tier: ACHIEVEMENT_TIERS.SILVER, threshold: 2500, metric: 'score' },
-      { id: 'growth_spurt_5000', tier: ACHIEVEMENT_TIERS.GOLD, threshold: 5000, metric: 'score' },
+      { id: 'stretch_1000', tier: ACHIEVEMENT_TIERS.BRONZE, threshold: 1000, metric: 'score' },
+      { id: 'stretch_2500', tier: ACHIEVEMENT_TIERS.SILVER, threshold: 2500, metric: 'score' },
+      { id: 'stretch_5000', tier: ACHIEVEMENT_TIERS.GOLD, threshold: 5000, metric: 'score' },
     ],
   },
   {
@@ -36,14 +36,14 @@ export const achievements = Object.freeze([
     ],
   },
   {
-    id: 'pacifist_growth',
-    title: 'PACIFIST GROWTH',
+    id: 'pacifist',
+    title: 'PACIFIST',
     description: 'Become dangerous without making enemies.',
     hidden: false,
     tiers: [
-      { id: 'pacifist_growth_500', tier: ACHIEVEMENT_TIERS.BRONZE, threshold: 500, metric: 'pacifistScore' },
-      { id: 'pacifist_growth_1000', tier: ACHIEVEMENT_TIERS.SILVER, threshold: 1000, metric: 'pacifistScore' },
-      { id: 'pacifist_growth_2500', tier: ACHIEVEMENT_TIERS.GOLD, threshold: 2500, metric: 'pacifistScore' },
+      { id: 'pacifist_500', tier: ACHIEVEMENT_TIERS.BRONZE, threshold: 500, metric: 'pacifistScore' },
+      { id: 'pacifist_1000', tier: ACHIEVEMENT_TIERS.SILVER, threshold: 1000, metric: 'pacifistScore' },
+      { id: 'pacifist_2500', tier: ACHIEVEMENT_TIERS.GOLD, threshold: 2500, metric: 'pacifistScore' },
     ],
   },
   {

@@ -32,6 +32,7 @@ test('first death credits existing best score as a one-time XP bonus', async () 
   assert.equal(h.els.deathScoreLine.classList.contains('hidden'), false, 'score tally appears after the bonus impact');
 
   h.advance(520, 16.7);
+  assert.equal(h.els.finalScore.textContent, '2000', 'death screen score includes the one-time best bonus');
   assert.equal(h.els.deathLevelText.textContent, 'REACHED LEVEL 6', 'XP tally includes the one-time best bonus');
 });
 

@@ -3,7 +3,8 @@
 // across 60/120/144Hz) with a render every animation frame.
 import {
   STEP, LS_KEY, LS_BEST_KILLS_KEY, LS_PAUSE_KEY, LS_GAMES_PLAYED_KEY,
-  LS_TOTAL_KILLS_KEY, LS_TOTAL_FOOD_KEY, LS_XP_KEY, MIN_BOOST_MASS, START_MASS
+  LS_TOTAL_KILLS_KEY, LS_TOTAL_FOOD_KEY, LS_XP_KEY, LS_CREDITED_XP_BONUS_KEY,
+  MIN_BOOST_MASS, START_MASS
 } from './constants.js';
 import * as world from './world.js';
 import * as input from './input.js';
@@ -39,6 +40,7 @@ let deathSequence = null;
 
 const DEATH_KILLS_HOLD = 1.5;
 const DEATH_FOOD_HOLD = 1.5;
+const DEATH_BONUS_HOLD = 1.5;
 const DEATH_DROP_TIME = 0.28;
 const DEATH_LEVEL_UP_HOLD = 0.72;
 const DEATH_FINAL_DELAY = 0.7;
@@ -58,15 +60,26 @@ function saveStoredInt(key, value) {
   } catch (e) {}
 }
 
+function readStoredBool(key) {
+  try { return localStorage.getItem(key) === 'true'; } catch (e) { return false; }
+}
+
+function saveStoredBool(key, value) {
+  try { localStorage.setItem(key, value ? 'true' : 'false'); } catch (e) {}
+}
+
 let best = readStoredInt(LS_KEY);
+const xpBonusBest = best;
 let bestKills = readStoredInt(LS_BEST_KILLS_KEY);
 let gamesPlayed = readStoredInt(LS_GAMES_PLAYED_KEY);
 let totalKills = readStoredInt(LS_TOTAL_KILLS_KEY);
 let totalFood = readStoredInt(LS_TOTAL_FOOD_KEY);
 let xp = readStoredInt(LS_XP_KEY);
+let creditedXpBonus = readStoredBool(LS_CREDITED_XP_BONUS_KEY);
 
 function saveBest() { saveStoredInt(LS_KEY, best); }
 function saveBestKills() { saveStoredInt(LS_BEST_KILLS_KEY, bestKills); }
+function saveCreditedXpBonus() { saveStoredBool(LS_CREDITED_XP_BONUS_KEY, creditedXpBonus); }
 function saveLifetimeStats() {
   saveStoredInt(LS_GAMES_PLAYED_KEY, gamesPlayed);
   saveStoredInt(LS_TOTAL_KILLS_KEY, totalKills);
@@ -249,6 +262,8 @@ function enterDeathPhase(phase, now) {
   else if (phase === 'killsDrop') dropDeathImpact();
   else if (phase === 'food') setDeathImpact(`+${r.food} FOOD`);
   else if (phase === 'foodDrop') dropDeathImpact();
+  else if (phase === 'bonus') setDeathImpact(`+${r.bonus} BONUS`);
+  else if (phase === 'bonusDrop') dropDeathImpact();
   else if (phase === 'score') {
     deathImpactEl.classList.add('hidden');
     deathScoreLineEl.classList.remove('hidden');
@@ -311,16 +326,20 @@ function updateDeathSequence(now) {
   const killsDropEnd = killsEnd + DEATH_DROP_TIME;
   const foodEnd = killsDropEnd + DEATH_FOOD_HOLD;
   const foodDropEnd = foodEnd + DEATH_DROP_TIME;
-  const scoreEnd = foodDropEnd + deathSequence.scoreDuration;
-  const scoreStarted = elapsed >= foodDropEnd;
+  const bonusEnd = foodDropEnd + (r.bonus > 0 ? DEATH_BONUS_HOLD : 0);
+  const bonusDropEnd = bonusEnd + (r.bonus > 0 ? DEATH_DROP_TIME : 0);
+  const scoreEnd = bonusDropEnd + deathSequence.scoreDuration;
+  const scoreStarted = elapsed >= bonusDropEnd;
 
   if (elapsed < killsEnd) enterDeathPhase('kills', now);
   else if (elapsed < killsDropEnd) enterDeathPhase('killsDrop', now);
   else if (elapsed < foodEnd) enterDeathPhase('food', now);
   else if (elapsed < foodDropEnd) enterDeathPhase('foodDrop', now);
+  else if (elapsed < bonusEnd) enterDeathPhase('bonus', now);
+  else if (elapsed < bonusDropEnd) enterDeathPhase('bonusDrop', now);
   else if (elapsed < scoreEnd) {
     enterDeathPhase('score', now);
-    const scoreElapsed = Math.max(0, elapsed - foodDropEnd);
+    const scoreElapsed = Math.max(0, elapsed - bonusDropEnd);
     const pct = deathSequence.scoreDuration > 0 ? Math.min(1, scoreElapsed / deathSequence.scoreDuration) : 1;
     finalEl.textContent = Math.floor(r.score * pct);
   } else {
@@ -343,16 +362,19 @@ function gameOver(now = performance.now() / 1000) {
   const sc = scoreForMass(p.mass);
   const kills = getPlayerKillCount();
   const food = getPlayerFoodCount();
+  const bonus = !creditedXpBonus && xpBonusBest > 500 ? xpBonusBest : 0;
+  creditedXpBonus = true;
   const previousXp = xp;
   const previousLevel = progressForXp(previousXp).level;
   gamesPlayed = normalizeProgressValue(gamesPlayed + 1);
   totalKills = normalizeProgressValue(totalKills + kills);
   totalFood = normalizeProgressValue(totalFood + food);
-  xp = normalizeProgressValue(xp + sc);
+  xp = normalizeProgressValue(xp + sc + bonus);
   const finalLevel = progressForXp(xp).level;
   if (sc > best) best = sc;
   saveBest();
   if (kills > bestKills) { bestKills = kills; saveBestKills(); }
+  saveCreditedXpBonus();
   saveLifetimeStats();
   updateBestText();
   pauseBtn.classList.add('hidden');
@@ -360,9 +382,10 @@ function gameOver(now = performance.now() / 1000) {
     score: sc,
     kills,
     food,
+    bonus,
     previousXp,
     finalXp: xp,
-    xpGained: sc,
+    xpGained: sc + bonus,
     previousLevel,
     finalLevel,
     leveled: finalLevel > previousLevel,

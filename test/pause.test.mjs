@@ -2,7 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as world from '../src/world.js';
-import { LS_GAMES_PLAYED_KEY, LS_PAUSE_KEY, LS_TOTAL_FOOD_KEY, LS_TOTAL_KILLS_KEY, LS_XP_KEY } from '../src/constants.js';
+import {
+  LS_CREDITED_XP_BONUS_KEY, LS_GAMES_PLAYED_KEY, LS_PAUSE_KEY,
+  LS_TOTAL_FOOD_KEY, LS_TOTAL_KILLS_KEY, LS_XP_KEY
+} from '../src/constants.js';
 
 test('LS_PAUSE_KEY is defined and distinct from the best-score key', () => {
   assert.equal(typeof LS_PAUSE_KEY, 'string');
@@ -11,7 +14,7 @@ test('LS_PAUSE_KEY is defined and distinct from the best-score key', () => {
 });
 
 test('lifetime progression storage keys are defined and distinct', () => {
-  const keys = [LS_GAMES_PLAYED_KEY, LS_TOTAL_KILLS_KEY, LS_TOTAL_FOOD_KEY, LS_XP_KEY];
+  const keys = [LS_GAMES_PLAYED_KEY, LS_TOTAL_KILLS_KEY, LS_TOTAL_FOOD_KEY, LS_XP_KEY, LS_CREDITED_XP_BONUS_KEY];
   assert.equal(new Set(keys).size, keys.length);
   for (const key of keys) {
     assert.equal(typeof key, 'string');

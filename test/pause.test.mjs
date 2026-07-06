@@ -2,12 +2,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as world from '../src/world.js';
-import { LS_PAUSE_KEY } from '../src/constants.js';
+import { LS_GAMES_PLAYED_KEY, LS_PAUSE_KEY, LS_TOTAL_FOOD_KEY, LS_TOTAL_KILLS_KEY, LS_XP_KEY } from '../src/constants.js';
 
 test('LS_PAUSE_KEY is defined and distinct from the best-score key', () => {
   assert.equal(typeof LS_PAUSE_KEY, 'string');
   assert.ok(LS_PAUSE_KEY.length > 0);
   assert.notEqual(LS_PAUSE_KEY, 'neon-serpent-best');
+});
+
+test('lifetime progression storage keys are defined and distinct', () => {
+  const keys = [LS_GAMES_PLAYED_KEY, LS_TOTAL_KILLS_KEY, LS_TOTAL_FOOD_KEY, LS_XP_KEY];
+  assert.equal(new Set(keys).size, keys.length);
+  for (const key of keys) {
+    assert.equal(typeof key, 'string');
+    assert.ok(key.startsWith('neon-serpent-'));
+    assert.notEqual(key, LS_PAUSE_KEY);
+  }
 });
 
 test('exportState / importState round-trips the world without mutation', () => {
@@ -26,6 +36,7 @@ test('exportState / importState round-trips the world without mutation', () => {
   const xBefore = playerBefore.x;
   const yBefore = playerBefore.y;
   const snakeCountBefore = snap.snakes.length;
+  const foodBefore = world.getPlayerFoodCount();
 
   // Import back and verify the state is faithfully restored
   world.importState(snap);
@@ -36,6 +47,7 @@ test('exportState / importState round-trips the world without mutation', () => {
   assert.ok(Math.abs(playerAfter.x - xBefore) < 0.0001, 'player x preserved');
   assert.ok(Math.abs(playerAfter.y - yBefore) < 0.0001, 'player y preserved');
   assert.equal(world.exportState().snakes.length, snakeCountBefore, 'snake count preserved');
+  assert.equal(world.getPlayerFoodCount(), foodBefore, 'player food count preserved');
 
   world.resetWorld();
 });

@@ -24,6 +24,9 @@ test('browser entry boots and handles all input paths without throwing', async (
 
   h.advance(60, 16.7);                  // idle menu frames
   assert.equal(h.els.menu.classList.contains('hidden'), false, 'main menu is visible on boot');
+  assert.equal(h.els.hud.classList.contains('hidden'), true, 'HUD is hidden in the menu preview');
+  assert.equal(h.els.boostBtn.classList.contains('hidden'), true, 'touch boost is hidden in the menu preview');
+  assert.equal(h.els.stick.classList.contains('hidden'), true, 'touch joystick is hidden in the menu preview');
   assert.equal(h.els.playBtn.textContent, 'NEW GAME', 'main menu starts fresh games');
   assert.equal(h.els.playerLevel.textContent, 'LEVEL 1', 'main menu labels XP section with current level');
   assert.equal(h.els.xpProgress.textContent, '0 / 250 XP', 'main menu XP tally includes XP unit');
@@ -31,6 +34,8 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), true, 'resume is hidden without a pause save');
   h.fireEl('profileBtn', 'click', {});
   assert.equal(h.els.profile.classList.contains('hidden'), false, 'Profile opens from the main menu');
+  assert.equal(h.els.boostBtn.classList.contains('hidden'), true, 'touch boost is hidden in Profile preview');
+  assert.equal(h.els.stick.classList.contains('hidden'), true, 'touch joystick is hidden in Profile preview');
   assert.equal(h.els.gamesPlayed.textContent, '0', 'Profile shows games played');
   assert.equal(h.els.achievementSummary.textContent, '0 / 12 COMPLETE', 'Profile summarizes achievement completion');
   assert.equal(h.els.achievementList.children.length, 4, 'Profile renders achievement groups');
@@ -38,6 +43,9 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.menu.classList.contains('hidden'), false, 'Profile Back returns to main menu');
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(1, 16.7);
+  assert.equal(h.els.hud.classList.contains('hidden'), false, 'HUD is visible during play');
+  assert.equal(h.els.boostBtn.classList.contains('hidden'), false, 'touch boost is visible during play');
+  assert.equal(h.els.stick.classList.contains('hidden'), false, 'touch joystick is visible during play');
   assert.equal(h.els.score.textContent, '0', 'score starts at zero for the initial mass');
   assert.equal(h.els.boostBtn.classList.contains('disabled'), true, 'boost button starts unavailable');
   h.fireEl('boostBtn', 'pointerdown', { pointerId: 30, preventDefault() {} });
@@ -102,6 +110,8 @@ test('browser entry boots and handles all input paths without throwing', async (
   h.fireEl('pauseBtn', 'click', {});
   assert.equal(h.els.pause.classList.contains('hidden'), false, 'pause overlay visible when paused');
   assert.equal(h.els.pauseBtn.classList.contains('hidden'), true, 'pause button hidden while paused');
+  assert.equal(h.els.boostBtn.classList.contains('hidden'), false, 'touch boost remains visible on pause');
+  assert.equal(h.els.stick.classList.contains('hidden'), false, 'touch joystick remains visible on pause');
   assert.equal(h.els.stickKnob.style.transform, 'translate(0px, 0px)', 'pause releases active joystick input');
   assert.ok(h.win.localStorage.getItem('neon-serpent-pause') !== null, 'pause state saved to localStorage');
 

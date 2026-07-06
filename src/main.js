@@ -19,6 +19,7 @@ import {
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
+const hudEl = el('hud');
 const scoreEl = el('score'), bestEl = el('best');
 const killsEl = el('kills'), killsLineEl = el('killsLine');
 const finalEl = el('finalScore');
@@ -30,6 +31,7 @@ const playBtn = el('playBtn'), menuResumeBtn = el('menuResumeBtn'), profileBtn =
 const profileBackBtn = el('profileBackBtn'), respawnBtn = el('respawnBtn'), deadMenuBtn = el('deadMenuBtn');
 const pauseBtn = el('pauseBtn'), resumeBtn = el('resumeBtn'), returnMenuBtn = el('returnMenuBtn');
 const hitFlashEl = el('hitFlash');
+const boostBtnEl = el('boostBtn'), stickEl = el('stick');
 const gamesPlayedEl = el('gamesPlayed'), totalKillsEl = el('totalKills'), totalFoodEl = el('totalFood');
 const menuBestScoreEl = el('menuBestScore'), menuBestKillsEl = el('menuBestKills');
 const playerLevelEl = el('playerLevel'), nextLevelEl = el('nextLevel'), xpProgressEl = el('xpProgress'), xpFillEl = el('xpFill');
@@ -116,6 +118,12 @@ function clearPauseState() {
 }
 
 function scoreForMass(mass) { return normalizeProgressValue(mass - START_MASS); }
+
+function setGameUiVisible(visible) {
+  hudEl.classList.toggle('hidden', !visible);
+  boostBtnEl.classList.toggle('hidden', !visible);
+  stickEl.classList.toggle('hidden', !visible);
+}
 
 function updateBestText() {
   bestEl.textContent = best;
@@ -207,6 +215,7 @@ function start() {
   resetDeathPresentation();
   killsLineEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
+  setGameUiVisible(true);
 }
 
 function showMenu() {
@@ -224,6 +233,7 @@ function showMenu() {
   resetDeathPresentation();
   killsLineEl.classList.add('hidden');
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
   updateMenuStats();
   snapCamera();
 }
@@ -237,6 +247,7 @@ function showProfile() {
   deadEl.classList.add('hidden');
   pauseEl.classList.add('hidden');
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
   updateProfileStats();
 }
 
@@ -252,6 +263,7 @@ function showSavedPause() {
   pauseEl.classList.remove('hidden');
   resetDeathPresentation();
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(true);
   snapCamera();
 }
 
@@ -460,6 +472,7 @@ function gameOver(now = performance.now() / 1000) {
   updateBestText();
   updateProfileStats();
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
   beginDeathSequence({
     score: sc,
     displayScore: sc + bonus,
@@ -485,6 +498,7 @@ function pause() {
     localStorage.setItem(LS_PAUSE_KEY, JSON.stringify(savedPauseState));
   } catch (e) {}
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(true);
   pauseEl.classList.remove('hidden');
 }
 
@@ -497,6 +511,7 @@ function resume() {
   last = performance.now();
   pauseEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
+  setGameUiVisible(true);
 }
 
 playBtn.addEventListener('click', start);

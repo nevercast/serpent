@@ -8,7 +8,7 @@ import {
 import { rand } from './math.js';
 import { foods, cells, spawnFood, spawnRandomFood, spawnAmbientFood, killFood, moveFoodCell, resetFood } from './food.js';
 import { Snake } from './snake.js';
-import { botThink, botAvoidHazards, shouldRunBotAvoidanceEveryTick } from './ai.js';
+import { botThink, botAvoidHazards, botModesForMass, botSandbagForScore, shouldRunBotAvoidanceEveryTick } from './ai.js';
 
 export const snakes = [];
 const botTimers = [];        // countdowns to respawn dead bots
@@ -159,11 +159,13 @@ export function eat(s, dt) {
 // caller beforehand (main.js applies input); bots decide for themselves here.
 export function update(dt, options = {}) {
   tGame += dt;
+  const playerScore = options.playerScore ?? (player && player.alive ? Math.max(0, Math.floor(player.mass - START_MASS)) : null);
+  const sandbag = options.botSandbag ?? (playerScore === null ? 0 : botSandbagForScore(playerScore));
   const botOptions = {
     navMode: options.navMode,
     avoidanceMode: options.avoidanceMode,
+    sandbag,
   };
-  const avoidEveryTick = shouldRunBotAvoidanceEveryTick(options.avoidanceMode);
 
   if (foods.length < TARGET_FOOD) {
     ambientFoodBudget += AMBIENT_FOOD_RESPAWNS_PER_SEC * dt;
@@ -182,7 +184,12 @@ export function update(dt, options = {}) {
     if (s.bot) {
       s.think -= dt;
       if (s.think <= 0) botThink(s, snakes, botOptions);
-      else if (avoidEveryTick) botAvoidHazards(s, snakes, options.avoidanceMode);
+      else {
+        const { avoidanceMode } = botModesForMass(s.mass, botOptions);
+        if (shouldRunBotAvoidanceEveryTick(avoidanceMode) && Math.random() >= sandbag * 0.55) {
+          botAvoidHazards(s, snakes, avoidanceMode);
+        }
+      }
     }
     s.update(dt);
   }

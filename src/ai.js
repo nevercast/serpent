@@ -4,9 +4,23 @@
 import { TAU, rand, clamp, angDiff } from './math.js';
 import {
   WORLD, BASE_SPEED, CELL, CELLS,
-  BOT_NAV_MODE, BOT_NAV_MODES, BOT_AVOIDANCE_MODE, BOT_AVOIDANCE_MODES
+  BOT_NAV_MODE, BOT_NAV_MODES, BOT_AVOIDANCE_MODE, BOT_AVOIDANCE_MODES,
+  BOT_DUMB_AI_MASS, BOT_SANDBAG_MAX, BOT_SANDBAG_SCORE_CAP
 } from './constants.js';
 import { cells } from './food.js';
+
+export function botSandbagForScore(score) {
+  const progress = clamp(Number.isFinite(score) ? score / BOT_SANDBAG_SCORE_CAP : 0, 0, 1);
+  return BOT_SANDBAG_MAX * (1 - progress);
+}
+
+export function botModesForMass(mass, options = {}) {
+  const useDumbAi = mass < BOT_DUMB_AI_MASS;
+  return {
+    navMode: options.navMode ?? (useDumbAi ? BOT_NAV_MODES.STANDARD : BOT_NAV_MODE),
+    avoidanceMode: options.avoidanceMode ?? (useDumbAi ? BOT_AVOIDANCE_MODES.PREDICTIVE : BOT_AVOIDANCE_MODE),
+  };
+}
 
 function turnRateForRadius(radius) {
   return 4.4 - Math.min(2.4, (radius - 7) * 0.16);
@@ -199,11 +213,22 @@ export function shouldRunBotAvoidanceEveryTick(mode = BOT_AVOIDANCE_MODE) {
 }
 
 export function botThink(b, snakes, options = {}) {
-  const navMode = options.navMode ?? BOT_NAV_MODE;
-  const avoidanceMode = options.avoidanceMode ?? BOT_AVOIDANCE_MODE;
+  const { navMode, avoidanceMode } = botModesForMass(b.mass, options);
+  const sandbag = clamp(options.sandbag ?? 0, 0, 1);
   b.think = 0.12 + Math.random() * 0.1;
+  if (sandbag > 0) b.think += sandbag * (0.1 + Math.random() * 0.12);
   pickBotTarget(b, snakes, navMode);
+  sandbagBotTarget(b, sandbag);
   botAvoidHazards(b, snakes, avoidanceMode);
+}
+
+function sandbagBotTarget(b, amount) {
+  if (amount <= 0) return;
+  const hesitation = 1 - amount * 0.65;
+  const desiredTurn = angDiff(b.targetAngle, b.dir) * hesitation;
+  const aimNoise = rand(-0.95, 0.95) * amount;
+  b.targetAngle = b.dir + desiredTurn + aimNoise;
+  if (b.boost && Math.random() < amount * 0.75) b.boost = false;
 }
 
 function pickBotTarget(b, snakes, navMode) {

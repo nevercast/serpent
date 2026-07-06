@@ -12,27 +12,37 @@ import * as view from './view.js';
 import { render, snapCamera } from './render.js';
 import { popPlayerHits, getPlayerKillCount, getPlayerFoodCount } from './world.js';
 import { normalizeProgressValue, progressForXp, tallyDurationForAmount } from './progression.js';
+import {
+  achievements, achievementBonus, evaluateAchievements, mergeCompletedAchievements,
+  readCompletedAchievements, saveCompletedAchievements, tierBonus, totalAchievementTiers
+} from './achievements.js';
 import './sprites.js';                 // build glow sprites at load
 
 const el = id => document.getElementById(id);
+const hudEl = el('hud');
 const scoreEl = el('score'), bestEl = el('best');
 const killsEl = el('kills'), killsLineEl = el('killsLine');
 const finalEl = el('finalScore');
 const deathImpactEl = el('deathImpact'), deathScoreLineEl = el('deathScoreLine');
 const deathXpPanelEl = el('deathXpPanel'), deathXpFillEl = el('deathXpFill'), deathLevelTextEl = el('deathLevelText');
 const deadActionsEl = el('deadActions');
-const menuEl = el('menu'), deadEl = el('dead'), pauseEl = el('pause');
-const playBtn = el('playBtn'), menuResumeBtn = el('menuResumeBtn'), respawnBtn = el('respawnBtn'), deadMenuBtn = el('deadMenuBtn');
+const menuEl = el('menu'), profileEl = el('profile'), deadEl = el('dead'), pauseEl = el('pause');
+const playBtn = el('playBtn'), menuResumeBtn = el('menuResumeBtn'), profileBtn = el('profileBtn');
+const profileBackBtn = el('profileBackBtn'), respawnBtn = el('respawnBtn'), deadMenuBtn = el('deadMenuBtn');
 const pauseBtn = el('pauseBtn'), resumeBtn = el('resumeBtn'), returnMenuBtn = el('returnMenuBtn');
 const hitFlashEl = el('hitFlash');
+const boostBtnEl = el('boostBtn'), stickEl = el('stick');
 const gamesPlayedEl = el('gamesPlayed'), totalKillsEl = el('totalKills'), totalFoodEl = el('totalFood');
 const menuBestScoreEl = el('menuBestScore'), menuBestKillsEl = el('menuBestKills');
 const playerLevelEl = el('playerLevel'), nextLevelEl = el('nextLevel'), xpProgressEl = el('xpProgress'), xpFillEl = el('xpFill');
+const profilePlayerLevelEl = el('profilePlayerLevel'), profileNextLevelEl = el('profileNextLevel');
+const profileXpProgressEl = el('profileXpProgress'), profileXpFillEl = el('profileXpFill');
+const achievementSummaryEl = el('achievementSummary'), achievementListEl = el('achievementList');
 
 playBtn.textContent = 'NEW GAME';
 respawnBtn.textContent = 'NEW GAME';
 
-const G = { mode: 'menu' };            // 'menu' | 'play' | 'dead' | 'paused'
+const G = { mode: 'menu' };            // 'menu' | 'profile' | 'play' | 'dead' | 'paused'
 let lastScore = -1;
 let lastKills = -1;
 let savedPauseState = null;
@@ -76,6 +86,7 @@ let totalKills = readStoredInt(LS_TOTAL_KILLS_KEY);
 let totalFood = readStoredInt(LS_TOTAL_FOOD_KEY);
 let xp = readStoredInt(LS_XP_KEY);
 let creditedXpBonus = readStoredBool(LS_CREDITED_XP_BONUS_KEY);
+let completedAchievements = readCompletedAchievements();
 
 function saveBest() { saveStoredInt(LS_KEY, best); }
 function saveBestKills() { saveStoredInt(LS_BEST_KILLS_KEY, bestKills); }
@@ -90,6 +101,16 @@ function saveLifetimeStats() {
 // storage pressure. localStorage remains the storage medium; persistence just
 // upgrades the quota bucket from "best effort" to "persistent".
 try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch (e) {}
+
+function preventPageZoomGestures() {
+  let lastTouchEndAt = 0;
+  document.addEventListener('touchend', e => {
+    const now = performance.now();
+    if (now - lastTouchEndAt < 350) e.preventDefault();
+    lastTouchEndAt = now;
+  }, { passive: false });
+  window.addEventListener('gesturestart', e => e.preventDefault());
+}
 
 function refreshSavedPauseState() {
   savedPauseState = null;
@@ -108,23 +129,82 @@ function clearPauseState() {
 
 function scoreForMass(mass) { return normalizeProgressValue(mass - START_MASS); }
 
+function setGameUiVisible(visible) {
+  hudEl.classList.toggle('hidden', !visible);
+  boostBtnEl.classList.toggle('hidden', !visible);
+  stickEl.classList.toggle('hidden', !visible);
+}
+
 function updateBestText() {
   bestEl.textContent = best;
   menuBestScoreEl.textContent = best;
   menuBestKillsEl.textContent = bestKills;
 }
 
-function updateMenuStats() {
+function updateXpPanel(levelEl, progressEl, fillEl, nextEl) {
   const prog = progressForXp(xp);
+  levelEl.textContent = `LEVEL ${prog.level}`;
+  nextEl.textContent = `+${prog.xpForNextLevel - prog.xpIntoLevel} XP TO REACH LEVEL ${prog.level + 1}`;
+  progressEl.textContent = `${prog.xpIntoLevel} / ${prog.xpForNextLevel} XP`;
+  fillEl.style.width = `${Math.max(0, Math.min(1, prog.progress)) * 100}%`;
+}
+
+function updateMenuStats() {
+  updateXpPanel(playerLevelEl, xpProgressEl, xpFillEl, nextLevelEl);
+  menuResumeBtn.classList.toggle('hidden', !savedPauseState);
+  menuResumeBtn.classList.toggle('btn-secondary', !savedPauseState);
+  playBtn.classList.toggle('btn-secondary', !!savedPauseState);
+  updateBestText();
+}
+
+function renderAchievementList() {
+  const completed = new Set(completedAchievements);
+  achievementSummaryEl.textContent = `${completed.size} / ${totalAchievementTiers()} COMPLETE`;
+  achievementListEl.textContent = '';
+  for (const achievement of achievements) {
+    const visible = !achievement.hidden || achievement.tiers.some(tier => completed.has(tier.id));
+    const row = document.createElement('div');
+    row.classList.add('achievement');
+
+    const title = document.createElement('div');
+    title.classList.add('achievement-title');
+    const name = document.createElement('span');
+    name.textContent = visible ? achievement.title : 'UNKNOWN';
+    const count = document.createElement('span');
+    const completeCount = achievement.tiers.filter(tier => completed.has(tier.id)).length;
+    count.textContent = `${completeCount}/${achievement.tiers.length}`;
+    title.appendChild(name);
+    title.appendChild(count);
+
+    const desc = document.createElement('div');
+    desc.classList.add('achievement-desc');
+    desc.textContent = visible ? achievement.description : 'Hidden achievement.';
+
+    const tiers = document.createElement('div');
+    tiers.classList.add('achievement-tiers');
+    for (const tier of achievement.tiers) {
+      const pill = document.createElement('div');
+      pill.classList.add('tier-pill');
+      if (completed.has(tier.id)) pill.classList.add('complete');
+      if (!visible) pill.classList.add('hidden-tier');
+      pill.textContent = visible ? `+${tierBonus(tier.tier)}` : '?';
+      tiers.appendChild(pill);
+    }
+
+    row.appendChild(title);
+    row.appendChild(desc);
+    row.appendChild(tiers);
+    achievementListEl.appendChild(row);
+  }
+}
+
+function updateProfileStats() {
+  updateXpPanel(profilePlayerLevelEl, profileXpProgressEl, profileXpFillEl, profileNextLevelEl);
   gamesPlayedEl.textContent = gamesPlayed;
   totalKillsEl.textContent = totalKills;
   totalFoodEl.textContent = totalFood;
-  playerLevelEl.textContent = `LEVEL ${prog.level}`;
-  nextLevelEl.textContent = `+${prog.xpForNextLevel - prog.xpIntoLevel} XP TO REACH LEVEL ${prog.level + 1}`;
-  xpProgressEl.textContent = `${prog.xpIntoLevel} / ${prog.xpForNextLevel} XP`;
-  xpFillEl.style.width = `${Math.max(0, Math.min(1, prog.progress)) * 100}%`;
-  menuResumeBtn.classList.toggle('hidden', !savedPauseState);
   updateBestText();
+  renderAchievementList();
 }
 
 function start() {
@@ -139,11 +219,13 @@ function start() {
   lastKills = -1;
   acc = 0;
   menuEl.classList.add('hidden');
+  profileEl.classList.add('hidden');
   deadEl.classList.add('hidden');
   pauseEl.classList.add('hidden');
   resetDeathPresentation();
   killsLineEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
+  setGameUiVisible(true);
 }
 
 function showMenu() {
@@ -155,13 +237,28 @@ function showMenu() {
   lastKills = -1;
   acc = 0;
   menuEl.classList.remove('hidden');
+  profileEl.classList.add('hidden');
   deadEl.classList.add('hidden');
   pauseEl.classList.add('hidden');
   resetDeathPresentation();
   killsLineEl.classList.add('hidden');
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
   updateMenuStats();
   snapCamera();
+}
+
+function showProfile() {
+  input.resetTouchInput();
+  G.mode = 'profile';
+  acc = 0;
+  menuEl.classList.add('hidden');
+  profileEl.classList.remove('hidden');
+  deadEl.classList.add('hidden');
+  pauseEl.classList.add('hidden');
+  pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
+  updateProfileStats();
 }
 
 function showSavedPause() {
@@ -171,10 +268,12 @@ function showSavedPause() {
   G.mode = 'paused';
   acc = 0;
   menuEl.classList.add('hidden');
+  profileEl.classList.add('hidden');
   deadEl.classList.add('hidden');
   pauseEl.classList.remove('hidden');
   resetDeathPresentation();
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(true);
   snapCamera();
 }
 
@@ -362,8 +461,11 @@ function gameOver(now = performance.now() / 1000) {
   const sc = scoreForMass(p.mass);
   const kills = getPlayerKillCount();
   const food = getPlayerFoodCount();
-  const bonus = !creditedXpBonus && xpBonusBest > 500 ? xpBonusBest : 0;
+  const unlockedAchievements = evaluateAchievements({ score: sc, kills, food }, completedAchievements);
+  const legacyBonus = !creditedXpBonus && xpBonusBest > 500 ? xpBonusBest : 0;
+  const bonus = legacyBonus + achievementBonus(unlockedAchievements);
   creditedXpBonus = true;
+  completedAchievements = mergeCompletedAchievements(completedAchievements, unlockedAchievements);
   const previousXp = xp;
   const previousLevel = progressForXp(previousXp).level;
   gamesPlayed = normalizeProgressValue(gamesPlayed + 1);
@@ -375,15 +477,19 @@ function gameOver(now = performance.now() / 1000) {
   saveBest();
   if (kills > bestKills) { bestKills = kills; saveBestKills(); }
   saveCreditedXpBonus();
+  saveCompletedAchievements(completedAchievements);
   saveLifetimeStats();
   updateBestText();
+  updateProfileStats();
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(false);
   beginDeathSequence({
     score: sc,
     displayScore: sc + bonus,
     kills,
     food,
     bonus,
+    unlockedAchievements,
     previousXp,
     finalXp: xp,
     xpGained: sc + bonus,
@@ -402,6 +508,7 @@ function pause() {
     localStorage.setItem(LS_PAUSE_KEY, JSON.stringify(savedPauseState));
   } catch (e) {}
   pauseBtn.classList.add('hidden');
+  setGameUiVisible(true);
   pauseEl.classList.remove('hidden');
 }
 
@@ -414,10 +521,13 @@ function resume() {
   last = performance.now();
   pauseEl.classList.add('hidden');
   pauseBtn.classList.remove('hidden');
+  setGameUiVisible(true);
 }
 
 playBtn.addEventListener('click', start);
 menuResumeBtn.addEventListener('click', showSavedPause);
+profileBtn.addEventListener('click', showProfile);
+profileBackBtn.addEventListener('click', showMenu);
 respawnBtn.addEventListener('click', start);
 deadMenuBtn.addEventListener('click', showMenu);
 pauseBtn.addEventListener('click', pause);
@@ -431,6 +541,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Escape') {
     if (G.mode === 'play') pause();
     else if (G.mode === 'paused') resume();
+    else if (G.mode === 'profile') showMenu();
   }
 });
 
@@ -466,7 +577,7 @@ function loop(t) {
 
   if (G.mode === 'dead') updateDeathSequence(t / 1000);
 
-  render(t / 1000);
+  render(t / 1000, { showUi: G.mode === 'play' || G.mode === 'paused' });
 
   if (G.mode === 'play') {
     const q = world.getPlayer();
@@ -498,6 +609,7 @@ window.addEventListener('beforeunload', () => { saveBest(); saveBestKills(); sav
 
 view.initView();
 input.initInput();
+preventPageZoomGestures();
 refreshSavedPauseState();
 showMenu();
 requestAnimationFrame(loop);

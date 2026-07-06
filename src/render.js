@@ -69,7 +69,8 @@ function drawMinimap(ctx) {
   }
 }
 
-export function render(time) {
+export function render(time, options = {}) {
+  const showUi = options.showUi ?? true;
   const ctx = view.ctx;
   const pxW = view.pxW, pxH = view.pxH;
 
@@ -132,5 +133,5 @@ export function render(time) {
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawMinimap(ctx);
+  if (showUi) drawMinimap(ctx);
 }

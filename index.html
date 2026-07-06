@@ -207,14 +207,24 @@
   }
   .profile-overlay {
     justify-content:flex-start;
-    overflow:auto;
+    overflow-x:hidden;
+    overflow-y:auto;
     padding-block:calc(28px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-bottom));
   }
   .profile-shell {
-    width:min(760px, 94vw);
+    width:100%;
+    max-width:760px;
+    min-width:0;
     display:grid;
     gap:22px;
     text-align:left;
+  }
+  .profile-shell .xp-panel,
+  .profile-shell .menu-stats {
+    width:100%;
+    max-width:560px;
+    min-width:0;
+    justify-self:center;
   }
   .profile-shell h1 { text-align:center; }
   .profile-section {

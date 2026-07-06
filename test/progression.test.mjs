@@ -5,33 +5,44 @@ import {
   progressForXp, tallyDurationForAmount, xpForLevel
 } from '../src/progression.js';
 
-test('fixed early level thresholds match the progression design', () => {
+test('level thresholds match the rebalanced progression design', () => {
   assert.equal(xpForLevel(1), 0);
-  assert.equal(xpForLevel(2), 500);
-  assert.equal(xpForLevel(3), 1000);
-  assert.equal(xpForLevel(4), 2500);
-  assert.equal(xpForLevel(5), 5000);
-  assert.equal(xpForLevel(6), 10000);
+  assert.equal(xpForLevel(2), 250);
+  assert.equal(xpForLevel(3), 550);
+  assert.equal(xpForLevel(4), 900);
+  assert.equal(xpForLevel(5), 1350);
+  assert.equal(xpForLevel(10), 5800);
+  assert.equal(xpForLevel(50), 467050);
+  assert.equal(xpForLevel(100), 1866600);
 });
 
 test('levelForXp advances only after reaching the next threshold', () => {
   assert.equal(levelForXp(0), 1);
-  assert.equal(levelForXp(499), 1);
-  assert.equal(levelForXp(500), 2);
-  assert.equal(levelForXp(2499), 3);
-  assert.equal(levelForXp(2500), 4);
+  assert.equal(levelForXp(249), 1);
+  assert.equal(levelForXp(250), 2);
+  assert.equal(levelForXp(899), 3);
+  assert.equal(levelForXp(900), 4);
 });
 
 test('progressForXp reports current and next level progress', () => {
-  assert.deepEqual(progressForXp(750), {
+  assert.deepEqual(progressForXp(400), {
     level: 2,
-    totalXp: 750,
-    currentLevelXp: 500,
-    nextLevelXp: 1000,
-    xpIntoLevel: 250,
-    xpForNextLevel: 500,
+    totalXp: 400,
+    currentLevelXp: 250,
+    nextLevelXp: 550,
+    xpIntoLevel: 150,
+    xpForNextLevel: 300,
     progress: 0.5,
   });
+});
+
+test('level deltas get harder then flatten out', () => {
+  const delta = level => xpForLevel(level) - xpForLevel(level - 1);
+  assert.ok(delta(20) > delta(10));
+  assert.ok(delta(50) > delta(20));
+  assert.ok(delta(100) >= 29500);
+  assert.ok(delta(100) <= 30000);
+  assert.ok(delta(100) - delta(90) < 250);
 });
 
 test('progression helpers reject non-finite values', () => {

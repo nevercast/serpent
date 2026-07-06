@@ -25,8 +25,8 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.playBtn.textContent, 'NEW GAME', 'main menu starts fresh games');
   assert.equal(h.els.gamesPlayed.textContent, '0', 'main menu shows games played');
   assert.equal(h.els.playerLevel.textContent, 'LEVEL 1', 'main menu labels XP section with current level');
-  assert.equal(h.els.xpProgress.textContent, '0 / 500 XP', 'main menu XP tally includes XP unit');
-  assert.equal(h.els.nextLevel.textContent, '+500 XP TO REACH LEVEL 2', 'main menu shows XP needed for next level');
+  assert.equal(h.els.xpProgress.textContent, '0 / 250 XP', 'main menu XP tally includes XP unit');
+  assert.equal(h.els.nextLevel.textContent, '+250 XP TO REACH LEVEL 2', 'main menu shows XP needed for next level');
   assert.equal(h.els.menuResumeBtn.classList.contains('hidden'), true, 'resume is hidden without a pause save');
   h.fireEl('playBtn', 'click', {});     // start the game
   h.advance(1, 16.7);
@@ -138,7 +138,7 @@ test('browser entry boots and handles all input paths without throwing', async (
   assert.equal(h.els.deathXpPanel.classList.contains('hidden'), false, 'XP progress appears with score tally');
   h.advance(520, 16.7);
   assert.equal(h.els.finalScore.textContent, '1200', 'score tally reaches final score');
-  assert.equal(h.els.deathLevelText.textContent, 'REACHED LEVEL 3', 'final level text reflects level-up result');
+  assert.equal(h.els.deathLevelText.textContent, 'REACHED LEVEL 4', 'final level text reflects level-up result');
   assert.equal(h.els.deadActions.classList.contains('hidden'), false, 'death actions appear after XP completes');
   assert.equal(h.els.deadActions.classList.contains('ready'), true, 'death actions fade into the ready state');
   assert.equal(h.els.respawnBtn.textContent, 'NEW GAME', 'death screen restart action is labeled New Game');

@@ -341,9 +341,9 @@ function updateDeathSequence(now) {
     enterDeathPhase('score', now);
     const scoreElapsed = Math.max(0, elapsed - bonusDropEnd);
     const pct = deathSequence.scoreDuration > 0 ? Math.min(1, scoreElapsed / deathSequence.scoreDuration) : 1;
-    finalEl.textContent = Math.floor(r.score * pct);
+    finalEl.textContent = Math.floor(r.displayScore * pct);
   } else {
-    finalEl.textContent = r.score;
+    finalEl.textContent = r.displayScore;
   }
   if (scoreStarted) updateDeathXp(now);
 }
@@ -380,6 +380,7 @@ function gameOver(now = performance.now() / 1000) {
   pauseBtn.classList.add('hidden');
   beginDeathSequence({
     score: sc,
+    displayScore: sc + bonus,
     kills,
     food,
     bonus,
